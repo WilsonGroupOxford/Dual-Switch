@@ -1,0 +1,39 @@
+IO
+./silica    input prefix
+./test output prefix
+--------------------------------------
+Network Properties
+1          periodic
+0           use existing network (P)
+100  100      starting bulk hexagonal lattice dimensions (even for periodic)
+4 10      ring size limits
+0.3       target alpha
+0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics
+--------------------------------------
+Simulation Parameters
+0 1         random seed range (exclusive)
+0.0001      temperature
+10000000      maximum proposed monte carlo moves
+0.00001        energy convergence criteria
+10.0          alpha energy scaling factor
+--------------------------------------
+Potential Model and Geometry Optimisation
+1.42        si-si distance
+1.0         harmonic k
+0           locally minimise every step
+100         maximum iterations
+0.1         convergence criteria
+0           globally minimise after simulation end
+1000       maximum iterations
+0.1         convergence criteria
+--------------------------------------
+Analysis Tools
+0           periodic visualisation
+0           partial spatial rdfs (P)
+0.01        partial rdf bin width
+0           partial topological rdfs (P)
+10           number of topological shells to include
+--------------------------------------
+
+Key
+(P) = periodic only
