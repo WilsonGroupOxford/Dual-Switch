@@ -3,10 +3,12 @@
 void Simulation::run() {
     //control all simulations
 
-
     readInputFile(); //get simulation parameters
-//    ofstream logfile(logfileName,ios::in|ios::app); //initialise logfile
-
+    ofstream logfile(logfileName,ios::in|ios::app); //initialise logfile
+    for(int seed=randomSeedLimits[0]; seed<=randomSeedLimits[1]; ++seed){
+        cout<<seed<<endl;
+    }
+    logfile.close();
 }
 
 void Simulation::readInputFile() {
@@ -71,11 +73,7 @@ void Simulation::readInputFile() {
     else writeFileLine(logfile,"final global geometry optimisation disabled");
     writeFileDashes(logfile);
 
-
-
     logfile.close();
-
-
 
     return;
 }
