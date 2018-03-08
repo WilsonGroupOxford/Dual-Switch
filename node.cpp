@@ -12,7 +12,7 @@ Node::Node() {
     return;
 }
 
-Node::Node(int s, int minS, int maxS, bool e=false) {
+Node::Node(int s, int minS, int maxS, bool e) {
     //constructor to set initial size
     size=s;
     minSize=minS;

@@ -18,6 +18,7 @@ struct Crd2d{
     Crd2d(double xInit, double yInit) : x(xInit), y(yInit) {}
 };
 
+double const pi=M_PI;
 
 
 #endif //DUAL_SWITCH_CRD_H

@@ -311,3 +311,8 @@ void writeFileDashes(ofstream &openFile, int n){
     }
     openFile<<endl;
 }
+
+void writeFileCrd(ofstream &openFile, Crd2d crd){
+    //write coordinate to file
+    openFile<<setw(15)<<left<<crd.x<<setw(15)<<left<<crd.y<<endl;
+}

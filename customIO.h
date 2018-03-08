@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <vector>
 #include <sstream>
+#include "crd.h"
 
 using namespace std;
 
@@ -50,5 +51,6 @@ void writeFilePassFail(ofstream &openFile, bool flag);
 void writeFilePassFail(ofstream &openFile, string condition, bool flag);
 void writeFileTrueFalse(ofstream &openFile, string condition, bool tf);
 void writeFileDashes(ofstream &openFile, int n=70);
+void writeFileCrd(ofstream &openFile, Crd2d crd);
 
 #endif //DUAL_SWITCH_CUSTOMIO_H

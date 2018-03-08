@@ -3,9 +3,9 @@ IO
 ./test output prefix
 --------------------------------------
 Network Properties
-1          periodic
+0          periodic
 0           use existing network (P)
-100  100      starting bulk hexagonal lattice dimensions (even for periodic)
+10 10     starting bulk hexagonal lattice dimensions (even for periodic)
 4 10      ring size limits
 0.3       target alpha
 0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics

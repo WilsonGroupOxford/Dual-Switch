@@ -15,6 +15,10 @@ void Simulation::run() {
         initialiseNetwork(network,seed);
         network.construct(logfile);
 
+
+
+        network.write();
+
     }
     logfile.close();
 }
@@ -91,6 +95,7 @@ void Simulation::initialiseNetwork(Network &network, int seed) {
 
     network.setIO(inPrefix,outPrefix+"_"+to_string(seed));
     network.setProperties(periodic,load,latticeDimensions,ringSizeLimits,alpha,pVector);
+    network.setPotential(atomDistance);
     network.setMonteCarlo(seed,temperature,maxMoves,propConvergence,alphaEnergyScaling);
 
     return;
