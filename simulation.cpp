@@ -5,8 +5,16 @@ void Simulation::run() {
 
     readInputFile(); //get simulation parameters
     ofstream logfile(logfileName,ios::in|ios::app); //initialise logfile
+
+    //perform network generation and analysis for the given random seeds
+    writeFileLine(logfile,"Network Generation and Analysis");
+    writeFileDashes(logfile);
     for(int seed=randomSeedLimits[0]; seed<=randomSeedLimits[1]; ++seed){
         cout<<seed<<endl;
+        Network network;
+        initialiseNetwork(network,seed);
+
+
     }
     logfile.close();
 }
@@ -74,6 +82,16 @@ void Simulation::readInputFile() {
     writeFileDashes(logfile);
 
     logfile.close();
+
+    return;
+}
+
+void Simulation::initialiseNetwork(Network &network, int seed) {
+    //set up network with input properties and given random seed
+
+    network.setIO(inPrefix,outPrefix+"_"+to_string(seed));
+    network.setProperties(periodic,load,latticeDimensions,ringSizeLimits,alpha,pVector);
+    network.setMonteCarlo(seed,temperature,maxMoves,propConvergence,alphaEnergyScaling);
 
     return;
 }

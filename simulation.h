@@ -4,6 +4,8 @@
 #define DUAL_SWITCH_SIMULATION_H
 
 #include "customIO.h"
+#include "network.h"
+
 
 class Simulation{
 private:
@@ -36,6 +38,9 @@ private:
     string logfileName; //name of log file
 
     void readInputFile(); //read in simulation parameters
+    void initialiseNetwork(Network &network, int seed); //set up network with input properties and given random seed
+
+
 public:
     void run(); //called by main to initialise simulation
 };
