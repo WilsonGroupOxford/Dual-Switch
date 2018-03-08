@@ -13,7 +13,7 @@ void Simulation::run() {
         cout<<seed<<endl;
         Network network;
         initialiseNetwork(network,seed);
-
+        network.construct(logfile);
 
     }
     logfile.close();
