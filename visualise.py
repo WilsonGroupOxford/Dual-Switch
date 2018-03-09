@@ -63,21 +63,15 @@ def readDual(prefix,periodic):
     if(periodic):
         crdFileName=prefix+"_dual_periodic_coordinates.out"
         cnxFileName=prefix+"_dual_periodic_connectivity.out"
+    	sizeFileName=prefix+"_dual_periodic_size.out"
     else:
         crdFileName=prefix+"_dual_coordinates.out"
         cnxFileName=prefix+"_dual_connectivity.out"
+    	sizeFileName=prefix+"_dual_size.out"
     crds=np.genfromtxt(crdFileName)
-    sizeFileName=prefix+"_dual_size.out"
     sizeAndEdge=np.genfromtxt(sizeFileName,dtype=int)
     size=sizeAndEdge[:,0]
     edge=sizeAndEdge[:,1]
-    if(periodic):
-        sizeP=np.tile(size,9)
-        # n=sizeP.size/9
-        # sizeP[:n*4]=3
-        # sizeP[n*5:]=3
-        size=sizeP
-        edge=np.tile(edge,9)
     cnxFile = open(cnxFileName, "r")
     cnxsList = []
     for line in cnxFile:
@@ -115,7 +109,7 @@ def plotDual(crds,cnxs,ringSizes,edges,colourFlag,labelFlag,fig,ax):
     for cnxList in cnxs:
         cnx0=cnxList[0]
         for cnx1 in cnxList[1:]:
-            plt.plot([crds[cnx0][0],crds[cnx1][0]],[crds[cnx0][1],crds[cnx1][1]],color="k",lw=0.5,zorder=2)
+            if(cnx0<cnx1): plt.plot([crds[cnx0][0],crds[cnx1][0]],[crds[cnx0][1],crds[cnx1][1]],color="k",lw=0.5,zorder=2)
     if(colourFlag):
     	colours=generateColours(ringSizes,edges,True)
 	plt.scatter(crds[:,0],crds[:,1],c=colours,s=2,zorder=3)

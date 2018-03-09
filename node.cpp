@@ -30,26 +30,18 @@ void Node::addConnection(int cnx) {
     return;
 }
 
-bool Node::makeConnection(int cnx) {
-    //make new connection and increase node size if doesn't violate limits
-    bool flag=true;
-    if(size+1<=maxSize){
-        connections.push_back(cnx);
-        size=++size;
-        sizeIndex=++sizeIndex;
-    }
-    else flag=false;
-    return flag;
+void Node::makeConnection(int cnx) {
+    //make new connection and increase node size/sizeIndex
+    connections.push_back(cnx);
+    size=++size;
+    sizeIndex=++sizeIndex;
+    return;
 }
 
-bool Node::breakConnection(int cnx) {
-    //break old connection and decrease node size if doesn't violate limits
-    bool flag=true;
-    if(size-1>=minSize){
-        connections.erase(remove(connections.begin(), connections.end(), cnx), connections.end());
-        size=--size;
-        sizeIndex=--sizeIndex;
-    }
-    else flag=false;
-    return flag;
+void Node::breakConnection(int cnx) {
+    //break old connection and decrease node size/sizeIndex
+    connections.erase(remove(connections.begin(), connections.end(), cnx), connections.end());
+    size=--size;
+    sizeIndex=--sizeIndex;
+    return;
 }

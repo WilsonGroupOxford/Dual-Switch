@@ -11,10 +11,10 @@ void Simulation::run() {
     writeFileDashes(logfile);
     for(int seed=randomSeedLimits[0]; seed<=randomSeedLimits[1]; ++seed){
         cout<<seed<<endl;
+
         Network network;
         initialiseNetwork(network,seed);
         network.construct(logfile);
-
 
 
         network.write();
@@ -97,6 +97,7 @@ void Simulation::initialiseNetwork(Network &network, int seed) {
     network.setProperties(periodic,load,latticeDimensions,ringSizeLimits,alpha,pVector);
     network.setPotential(atomDistance);
     network.setMonteCarlo(seed,temperature,maxMoves,propConvergence,alphaEnergyScaling);
+    network.setAnalysis(periodicVis);
 
     return;
 }

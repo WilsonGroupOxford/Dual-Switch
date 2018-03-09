@@ -52,6 +52,11 @@ void consoleMatrix(vector< vector<double> > &mat){
     }
     return;
 }
+void consoleCoordinate(Crd2d &crd){
+    //write coordinate to console
+    cout<<setw(15)<<left<<crd.x<<setw(15)<<left<<crd.y<<endl;
+    return;
+}
 
 void readFileSkipLines(ifstream &file, int nLines){
     //skip over line
@@ -226,6 +231,10 @@ void writeFileLine(ofstream &openFile, int value, bool lineBreak){
     //write line to file with or without break
     if(lineBreak) openFile<<value<<endl;
     else openFile<<value;
+}
+void writeFileLine(ofstream &openFile, int value1, int value2){
+    //write line to file with or without break
+    openFile<<setw(15)<<left<<value1<<setw(15)<<left<<value2<<endl;
 }
 void writeFileLine(ofstream &openFile, int value, int w, string text, bool lineBreak){
     //write line to file with or without break

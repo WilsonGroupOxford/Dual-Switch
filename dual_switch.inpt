@@ -3,7 +3,7 @@ IO
 ./test output prefix
 --------------------------------------
 Network Properties
-0          periodic
+1          periodic
 0           use existing network (P)
 10 10     starting bulk hexagonal lattice dimensions (even for periodic)
 4 10      ring size limits
@@ -13,8 +13,8 @@ Network Properties
 Simulation Parameters
 0 0         random seed range (inclusive)
 0.0001      temperature
-1000      maximum proposed monte carlo moves
-0.00001        energy convergence criteria
+1000000     maximum proposed monte carlo moves
+0.001        energy convergence criteria
 10.0          alpha energy scaling factor
 --------------------------------------
 Potential Model and Geometry Optimisation
@@ -28,7 +28,7 @@ Potential Model and Geometry Optimisation
 0.1         convergence criteria
 --------------------------------------
 Analysis Tools
-0           periodic visualisation
+1           periodic visualisation
 0           partial spatial rdfs (P)
 0.01        partial rdf bin width
 0           partial topological rdfs (P)

@@ -20,6 +20,7 @@ void consoleVector(vector<double> &vec);
 void consoleVector(vector<bool> &vec);
 void consoleMatrix(vector< vector<int> > &mat);
 void consoleMatrix(vector< vector<double> > &mat);
+void consoleCoordinate(Crd2d &crd);
 
 //functions which read from file
 void readFileSkipLines(ifstream &file, int nLines=1);
@@ -38,6 +39,7 @@ void readFileAdaptiveMatrix(ifstream &file, vector< vector<int> > &mat, int nRow
 //functions which write to file
 void writeFileLine(ofstream &openFile, string text, bool lineBreak=true);
 void writeFileLine(ofstream &openFile, int value, bool lineBreak=true);
+void writeFileLine(ofstream &openFile, int value1, int value2);
 void writeFileLine(ofstream &openFile, int value, int w, string text, bool lineBreak=true);
 void writeFileValue(ofstream &openFile, double value);
 void writeFileRowVector(ofstream &openFile, vector<int> vec);

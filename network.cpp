@@ -36,18 +36,38 @@ void Network::setMonteCarlo(int seed, double t, int moves, double conv, double a
     return;
 }
 
+void Network::setAnalysis(bool perVis) {
+    //specify analysis to perform
+    if(periodic) periodicVisualisation=perVis;
+    else periodicVisualisation=false;
+    return;
+}
+
+//###### GETTERS ######
+
 //###### Construction Main ######
 
 void Network::construct(ofstream &logfile) {
     //attempt to build network with the specified properties
 
-    writeFileLine(logfile,"constructing network seed "+to_string(mcSeed));
+    name="network "+to_string(mcSeed);
+    writeFileLine(logfile,"constructing "+name);
+
     initialiseNetworkProperties();
     initialisePotentialModel();
     if(periodic) initialisePeriodicLattice();
     else initialiseAperiodicLattice();
     initialiseMonteCarlo();
     monteCarlo();
+    checkFidelity();
+
+    writeFileLine(logfile,name+" constructed");
+    if(consistent) writeFileLine(logfile,name+" checked for consistency and passed");
+    else writeFileLine(logfile,name+" failed consistency test");
+    if(mcTargetReached) writeFileLine(logfile, name+" targets met in "+to_string(mcProposedMoves)+" monte carlo moves");
+    else writeFileLine(logfile, name+" targets not met");
+
+
 
 
     return;
@@ -110,9 +130,91 @@ void Network::initialisePeriodicLattice() {
         }
         stagger=!stagger;
     }
-    //make aperiodic first
 
+    //make connections between nodes - aperiodic first
+    nodeIndex=0;
+    for(int j=0; j<yNodes; ++j){//intralayer
+        for(int i=0; i<xNodes-1; ++i){
+            nodes[nodeIndex].addConnection(nodeIndex+1);
+            nodes[nodeIndex+1].addConnection(nodeIndex);
+            nodeIndex=++nodeIndex;
+        }
+        nodeIndex=++nodeIndex; //skip to next layer
+    }
+    nodeIndex=0;
+    stagger=false;
+    for(int j=0; j<yNodes-1;++j){//interlayer
+        if(!stagger){
+            nodes[nodeIndex].addConnection(nodeIndex+xNodes);
+            nodes[nodeIndex+xNodes].addConnection(nodeIndex);
+            nodeIndex=++nodeIndex;
+            for(int i=1; i<xNodes; ++i){
+                nodes[nodeIndex].addConnection(nodeIndex+xNodes-1);
+                nodes[nodeIndex].addConnection(nodeIndex+xNodes);
+                nodes[nodeIndex+xNodes-1].addConnection(nodeIndex);
+                nodes[nodeIndex+xNodes].addConnection(nodeIndex);
+                nodeIndex=++nodeIndex;
+            }
+        }
+        else{
+            for(int i=0; i<xNodes-1; ++i){//bottom layer <-> middle layer
+                nodes[nodeIndex].addConnection(nodeIndex+xNodes);
+                nodes[nodeIndex].addConnection(nodeIndex+xNodes+1);
+                nodes[nodeIndex+xNodes].addConnection(nodeIndex);
+                nodes[nodeIndex+xNodes+1].addConnection(nodeIndex);
+                nodeIndex=++nodeIndex;
+            }
+            nodes[nodeIndex].addConnection(nodeIndex+xNodes);
+            nodes[nodeIndex+xNodes].addConnection(nodeIndex);
+            nodeIndex=++nodeIndex;
+        }
+        stagger=!stagger;
+    }
+    //add periodic connections
+    nodeIndex=0;
+    for(int j=0; j<yNodes; ++j){//intralayer
+        nodes[nodeIndex].addConnection(nodeIndex+xNodes-1);
+        nodes[nodeIndex+xNodes-1].addConnection(nodeIndex);
+        nodeIndex=nodeIndex+xNodes; //skip to next layer
+    }
+    stagger=false;
+    nodeIndex=0;
+    for(int j=0; j<yNodes-1; ++j){//interlayer connections excluding bottom<->top
+        if(!stagger){
+            nodes[nodeIndex].addConnection(nodeIndex+2*xNodes-1);
+            nodes[nodeIndex+2*xNodes-1].addConnection(nodeIndex);
+        }
+        else{
+            nodes[nodeIndex+xNodes-1].addConnection(nodeIndex+xNodes);
+            nodes[nodeIndex+xNodes].addConnection(nodeIndex+xNodes-1);
+        }
+        nodeIndex=nodeIndex+xNodes;
+        stagger=!stagger;
+    }
+    for(int i=0; i<xNodes; ++i){//interlayer bottom<->top
+        nodes[i].addConnection(nodeIndex+i);
+        nodes[nodeIndex+i].addConnection(i);
+    }
+    for(int i=1; i<xNodes; ++i){//interlayer bottom<->top
+        nodes[i].addConnection(nodeIndex+i-1);
+        nodes[nodeIndex+i-1].addConnection(i);
+    }
+    nodes[0].addConnection(xNodes*yNodes-1); //bottom left to top right
+    nodes[xNodes*yNodes-1].addConnection(0);
 
+    //set up periodic dimensions
+    periodicBoxX=r66*xNodes;
+    periodicBoxY=yOffset*yNodes;
+    rPeriodicBoxX=1.0/periodicBoxX;
+    rPeriodicBoxY=1.0/periodicBoxY;
+
+    //set up p vector and matrix
+    pVector.resize(nRingSizes,0);
+    pMatrix.resize(nRingSizes, (vector<int> (nRingSizes,0)));
+    pVector[index6]=initialLatticeDimensions[0]*initialLatticeDimensions[1]; //set all rings as hexagons
+    pMatrix[index6][index6]=nNodes*6;
+
+    return;
 }
 
 void Network::initialiseAperiodicLattice() {
@@ -299,6 +401,8 @@ void Network::monteCarlo() {
     //mc variables
     vector<int> switchTriangles(4); //nodes making triangles to switch
 
+    mcTargetReached=false;
+    mcProposedMoves=mcMaxMoves; //if target is not met will have max mc moves
     if(!periodic){
         for(int move=0; move<mcMaxMoves; ++move){
             trialPVector=pVector;
@@ -308,12 +412,13 @@ void Network::monteCarlo() {
             trialAwParameters=calculateAboavWeaireFit(trialPVector,trialPMatrix);
             trialMcEnergy=mcEnergyFunctional(trialAwParameters,trialPVector);
             acceptTrialMove=evaluateMetropolisCondition(trialMcEnergy,mcEnergy);
-            if(acceptTrialMove){
-                
+            if(acceptTrialMove) mcTargetReached=acceptDualSwitch(switchTriangles,trialPVector,trialPMatrix,trialMcEnergy,trialAwParameters);
+            if(mcTargetReached){
+                mcProposedMoves=move+1;
+                break;
             }
         }
     }
-
     return;
 }
 
@@ -476,6 +581,28 @@ bool Network::evaluateMetropolisCondition(double &trialEnergy, double &currEnerg
     return accept;
 }
 
+bool Network::acceptDualSwitch(vector<int> &switchTriangles, vector<int> &trialPVec, vector<vector<int> > &trialPMat, double &trialMcEnergy, vector<double> &trialAwParams) {
+    //enact dual switch on nodes and update trial-> current variables
+
+    //make/break connections
+    nodes[switchTriangles[0]].breakConnection(switchTriangles[1]);
+    nodes[switchTriangles[1]].breakConnection(switchTriangles[0]);
+    nodes[switchTriangles[2]].makeConnection(switchTriangles[3]);
+    nodes[switchTriangles[3]].makeConnection(switchTriangles[2]);
+
+    pVector=trialPVec;
+    pMatrix=trialPMat;
+    mcEnergy=trialMcEnergy;
+    aboavWeaireParams=trialAwParams;
+
+    cout<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
+//    consoleVector(switchTriangles);
+//    checkFidelity();
+
+    if(mcEnergy<=mcConvergence) return true;
+    else return false;
+}
+
 double Network::metropolisRandomNum() {
     //random between 0->1
     return zeroOneDistribution(randomGenerator);
@@ -507,7 +634,7 @@ void Network::checkFidelity() {
         }
         else break;
     }
-    cout<<"consistent: "<<selfConsistent<<endl;
+//    cout<<"consistent: "<<selfConsistent<<endl;
 
     vector<int> checkPVector(nRingSizes,0);
     vector< vector<int> > checkPMatrix(nRingSizes,(vector<int> (nRingSizes,0)));
@@ -530,7 +657,10 @@ void Network::checkFidelity() {
         if(pVector[i]!=checkPVector[i]) pVectorPass=false;
         for(int j=0; j<nRingSizes; ++j) if(pMatrix[i][j]!=checkPMatrix[i][j]) pMatrixPass=false;
     }
-    cout<<"p vector: "<<pVectorPass<<" p matrix: "<<pMatrixPass<<endl;
+//    cout<<"p vector: "<<pVectorPass<<" p matrix: "<<pMatrixPass<<endl;
+
+    if(selfConsistent && pVectorPass && pMatrixPass) consistent=true;
+    else consistent=false;
 
     return;
 }
@@ -541,6 +671,8 @@ void Network::write() {
     //write out to files
 
     writeDual();
+
+    if(periodicVisualisation) writePeriodicNetwork();
 
     return;
 }
@@ -572,6 +704,89 @@ void Network::writeDual() {
         writeFileRowVector(sizeOutputFile,line);
     }
     sizeOutputFile.close();
+
+    return;
+}
+
+void Network::writePeriodicNetwork() {
+    //only for visualisation, calculate periodic images of network for visualisation
+
+    //set limits of visualisation region
+    double imageProportion=0.2;
+    double leftLimit=-imageProportion*periodicBoxX, rightLimit=(1.0+imageProportion)*periodicBoxX;
+    double bottomLimit=-imageProportion*periodicBoxY, topLimit=(1.0+imageProportion)*periodicBoxY;
+
+    //find nodes which would periodically fit in vis region, make new nodes
+    Crd2d imageCrd; //coordinate of image
+    int nPeriodicNodes=nNodes;
+    vector<Node> periodicNodes=nodes;
+    map <int, vector<int> > nodeImageMap; //node references for all images of node
+    for(int i=0; i<nNodes; ++i) nodeImageMap[i]=vector<int> (1,i); //add image in original box
+    for(int n=0; n<nNodes; ++n){//loop over all nodes
+        for(int i=-1; i<=1; ++i){//loop over nearest images
+            for(int j=-1; j<=1; ++j){
+                if(abs(i)+abs(j)!=0){
+                    imageCrd=periodicNodes[n].coordinate;
+                    imageCrd.x=imageCrd.x+i*periodicBoxX;
+                    imageCrd.y=imageCrd.y+j*periodicBoxY;
+                    if(imageCrd.x>leftLimit && imageCrd.x<rightLimit && imageCrd.y>bottomLimit && imageCrd.y<topLimit){//if in region make new coordinate
+                        periodicNodes.push_back(periodicNodes[n]);
+                        periodicNodes[nPeriodicNodes].coordinate=imageCrd;
+                        nodeImageMap[n].push_back(nPeriodicNodes);
+                        nPeriodicNodes=++nPeriodicNodes;
+                    }
+                }
+            }
+        }
+    }
+
+    //remake connections to nearest image
+    int nodeRef;
+    Crd2d imageVec;
+    vector<int> images, cnxCopy;
+    vector<double> distances;
+    double micX=periodicBoxX*0.5, micY=periodicBoxY*0.5; //minimum image convention
+    for(int i=0; i<nPeriodicNodes; ++i){
+        cnxCopy=periodicNodes[i].connections;
+        periodicNodes[i].connections.clear();
+        for(int j=0; j<periodicNodes[i].size; ++j){
+            nodeRef=cnxCopy[j];
+            images=nodeImageMap[nodeRef];
+            for(int k=0; k<images.size(); ++k){
+                imageVec=vectorFromCrds(periodicNodes[i].coordinate,periodicNodes[images[k]].coordinate);
+                if(fabs(imageVec.x)<=micX && fabs(imageVec.y)<=micY){
+                    periodicNodes[i].addConnection(images[k]);
+                    break;
+                }
+            }
+        }
+    }
+    //set undercoordinated nodes as edges
+    for(int i=0; i<nPeriodicNodes; ++i){
+        if(periodicNodes[i].size!=periodicNodes[i].connections.size()) periodicNodes[i].edge=true;
+    }
+
+    //write dual coordinates and connectivities
+    string crdOutputFileName=outPrefix+"dual_periodic_coordinates.out";
+    ofstream crdOutputFile(crdOutputFileName, ios::in|ios::trunc);
+    for(int i=0; i<nPeriodicNodes; ++i) writeFileCrd(crdOutputFile,periodicNodes[i].coordinate);
+    crdOutputFile.close();
+
+    string sizeOutputFileName=outPrefix+"dual_periodic_size.out";
+    ofstream sizeOutputFile(sizeOutputFileName, ios::in|ios::trunc);
+    for(int i=0; i<nPeriodicNodes; ++i) writeFileLine(sizeOutputFile,periodicNodes[i].size,int(periodicNodes[i].edge));
+    sizeOutputFile.close();
+
+    string cnxOutputFileName=outPrefix+"dual_periodic_connectivity.out";
+    ofstream cnxOutputFile(cnxOutputFileName, ios::in|ios::trunc);
+    vector<int> cnxs;
+    for(int i=0; i<nPeriodicNodes; ++i){
+        cnxs=periodicNodes[i].connections;
+        cnxs.insert(cnxs.begin(),i); //add node id to front of vector
+        writeFileRowVector(cnxOutputFile,cnxs);
+    }
+    cnxOutputFile.close();
+
 
     return;
 }

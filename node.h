@@ -27,8 +27,8 @@ public:
 
     //Connection manipulation
     void addConnection(int cnx); //add without changing size
-    bool makeConnection(int cnx); //make increments size, rejects if node becomes too large
-    bool breakConnection(int cnx); //break decrements size, rejects if node becomes too small
+    void makeConnection(int cnx); //make increments size
+    void breakConnection(int cnx); //break decrements size
 
 
 };
