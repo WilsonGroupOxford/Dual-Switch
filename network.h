@@ -43,7 +43,7 @@ private:
     vector< vector<double> > harmonicR0Matrix; //harmonic minimum for nodes of different sizes
 
     //Further monte carlo properties
-    double mcEnergy; //energy of system relative to target properties
+    double mcEnergy, targetMu; //energy of system relative to target properties, mu
     double rMcTemperature, rTargetMu; //reciprocals of key values
     vector<double> rTargetPVector; //reciprocals of key values
     mt19937 randomGenerator; //generator for distributions
@@ -69,6 +69,9 @@ private:
     void monteCarlo(); //main monte carlo process
     vector<int> pickRandomTrianglePairAperiodic(); //nodes to dual switch
     void calculateTrialPAperiodic(vector<int> &triangles, vector<int> &trialPVector, vector< vector<int> > &trialPMatrix); //calculate trial p vector and matrix
+    vector<double> calculateAboavWeaireFit(vector<int> &pVec, vector< vector<int> > &pMat); //calculate Aboav-Weaire parameters
+    double mcEnergyFunctional(vector<double> &awParams, vector<int> &pVec); //calculate energy for mc
+    bool evaluateMetropolisCondition(double &trialEnergy, double &currEnergy); //accept or reject mc move
 
     //Checking
     void checkFidelity(); //check to ensure consistency

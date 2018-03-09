@@ -20,5 +20,6 @@ struct Crd2d{
 
 double const pi=M_PI;
 
+vector<double> leastSquaresLinearRegression(vector<Crd2d> &data);
 
 #endif //DUAL_SWITCH_CRD_H

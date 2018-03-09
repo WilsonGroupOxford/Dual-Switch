@@ -46,7 +46,6 @@ void Network::construct(ofstream &logfile) {
     initialisePotentialModel();
     if(periodic) initialisePeriodicLattice();
     else initialiseAperiodicLattice();
-    checkFidelity();
     initialiseMonteCarlo();
     monteCarlo();
 
@@ -272,10 +271,10 @@ void Network::initialiseMonteCarlo() {
         if(targetPVector[i]>0) rTargetPVector[i]=1.0/targetPVector[i];
         else rTargetPVector[i]=1.0;
     }
-    rTargetMu=0.0;
-    for(int i=0; i<nRingSizes;++i) rTargetMu=rTargetMu+(minRingSize+i)*(minRingSize+i)*targetPVector[i];
-    rTargetMu=rTargetMu-36.0;
-    rTargetMu=1.0/rTargetMu;
+    targetMu=0.0;
+    for(int i=0; i<nRingSizes;++i) targetMu=targetMu+(minRingSize+i)*(minRingSize+i)*targetPVector[i];
+    targetMu=targetMu-36.0;
+    rTargetMu=1.0/targetMu;
 
     //random generators
     randomGenerator.seed(mcSeed);
@@ -291,8 +290,11 @@ void Network::monteCarlo() {
     //main dual switch monte carlo process
 
     //trial variables
+    bool acceptTrialMove;
+    double trialMcEnergy;
     vector<int> trialPVector;
     vector< vector<int> > trialPMatrix;
+    vector<double> trialAwParameters;
 
     //mc variables
     vector<int> switchTriangles(4); //nodes making triangles to switch
@@ -303,7 +305,12 @@ void Network::monteCarlo() {
             trialPMatrix=pMatrix;
             switchTriangles=pickRandomTrianglePairAperiodic();
             calculateTrialPAperiodic(switchTriangles, trialPVector, trialPMatrix);
-            checkFidelity();
+            trialAwParameters=calculateAboavWeaireFit(trialPVector,trialPMatrix);
+            trialMcEnergy=mcEnergyFunctional(trialAwParameters,trialPVector);
+            acceptTrialMove=evaluateMetropolisCondition(trialMcEnergy,mcEnergy);
+            if(acceptTrialMove){
+                
+            }
         }
     }
 
@@ -411,6 +418,62 @@ void Network::calculateTrialPAperiodic(vector<int> &triangles, vector<int> &tria
     }
 
     return;
+}
+
+vector<double> Network::calculateAboavWeaireFit(vector<int> &pVec, vector<vector<int> > &pMat) {
+    //calculate 6(n-6) and nmn and perform linear regression
+    vector<Crd2d> fitData;
+    fitData.clear();
+
+    double mn,norm;///aw alpha and mean ring size about each ring,normalisation factor
+    //find x,y for rings present in system
+    for(int i=0; i<nRingSizes; ++i){
+        if(pVec[i]>0){
+            mn=0.0;
+            norm=1.0/accumulate(pMat[i].begin(), pMat[i].end(), 0.0);
+            for (int j=0; j<nRingSizes; ++j) mn=mn+(minRingSize+j)*norm*pMat[i][j];
+            fitData.push_back(Crd2d(6.0*(minRingSize+i-6.0),mn*(minRingSize+i)));
+        }
+    }
+
+    //perform linear regression if not just one ring type
+    vector<double> fitParameters(3,0.0); //alpha, mu and rsq
+    if(fitData.size()>1){
+        fitParameters=leastSquaresLinearRegression(fitData);
+        fitParameters[0]=1.0-fitParameters[0]; //alpha from gradient
+        fitParameters[1]=fitParameters[1]-36.0; //mu from intercept // rsq unchanged
+    }
+    return fitParameters;
+}
+
+double Network::mcEnergyFunctional(vector<double> &awParams, vector<int> &pVec) {
+    //evaluate energy for monte carlo condition from difference between current and target network properties
+
+    //difference of alpha to target
+    double e=fabs(awParams[0]-targetAlpha)*mcAlphaScaleFactor;
+
+    //difference of fitted mu to mu
+    e=e+fabs(awParams[1]-targetMu)*rTargetMu;
+
+    //difference of ring statistics to target
+    double norm=1.0/accumulate(pVec.begin(), pVec.end(), 0.0);
+    for(int i=0; i<nRingSizes; ++i) e=e+fabs(norm*pVec[i]-targetPVector[i])*rTargetPVector[i];
+
+    return e;
+}
+
+bool Network::evaluateMetropolisCondition(double &trialEnergy, double &currEnergy) {
+    //condition to accept/reject mc move
+    bool accept=true;
+    double deltaE=trialEnergy-currEnergy;
+    if(deltaE<0.0) accept=true;
+    else{
+        double condition=exp(-deltaE*rMcTemperature);
+        if(condition>metropolisRandomNum()) accept=true;
+        else accept=false;
+    }
+
+    return accept;
 }
 
 double Network::metropolisRandomNum() {
