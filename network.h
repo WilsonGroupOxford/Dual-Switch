@@ -76,7 +76,9 @@ private:
 
     //Monte carlo
     void monteCarlo(); //main monte carlo process
+    vector<int> pickRandomTrianglePairPeriodic(); //nodes to dual switch
     vector<int> pickRandomTrianglePairAperiodic(); //nodes to dual switch
+    void calculateTrialPPeriodic(vector<int> &triangles, vector<int> &trialPVector, vector< vector<int> > &trialPMatrix); //calculate trial p vector and matrix
     void calculateTrialPAperiodic(vector<int> &triangles, vector<int> &trialPVector, vector< vector<int> > &trialPMatrix); //calculate trial p vector and matrix
     vector<double> calculateAboavWeaireFit(vector<int> &pVec, vector< vector<int> > &pMat); //calculate Aboav-Weaire parameters
     double mcEnergyFunctional(vector<double> &awParams, vector<int> &pVec); //calculate energy for mc

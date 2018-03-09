@@ -13,7 +13,7 @@ Network Properties
 Simulation Parameters
 0 0         random seed range (inclusive)
 0.0001      temperature
-1000000     maximum proposed monte carlo moves
+1000     maximum proposed monte carlo moves
 0.001        energy convergence criteria
 10.0          alpha energy scaling factor
 --------------------------------------
