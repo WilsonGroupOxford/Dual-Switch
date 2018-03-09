@@ -46,9 +46,9 @@ private:
     double mcEnergy; //energy of system relative to target properties
     double rMcTemperature, rTargetMu; //reciprocals of key values
     vector<double> rTargetPVector; //reciprocals of key values
-    mt19937 nodePickGenerator, metropolisGenerator; //generators for distributions
-    uniform_int_distribution<int> nodePickDistribution; //mersenne twister uniform distribution between 0->nNodes
-    uniform_real_distribution<double> metropolisDistribution; //mersenne twister uniform distribution between 0->1
+    mt19937 randomGenerator; //generator for distributions
+    uniform_int_distribution<int> nodeDistribution; //mersenne twister uniform distribution between 0->nNodes
+    uniform_real_distribution<double> zeroOneDistribution, connectionPickDistribution; //mersenne twister uniform distribution between 0->1
 
 
 
@@ -62,8 +62,13 @@ private:
     void initialiseMonteCarlo(); //set up variables and initialise random number generators
 
     //Random numbers
-    int pickRandomNode(); //select node from network
+    int pickRandomNode(), pickRandomConnection(int nCnxs); //select node from network, select connection
     double metropolisRandomNum(); //random number for mc metropolis condition
+
+    //Monte carlo
+    void monteCarlo(); //main monte carlo process
+    vector<int> pickRandomTrianglePairAperiodic(); //nodes to dual switch
+    void calculateTrialPAperiodic(vector<int> &triangles, vector<int> &trialPVector, vector< vector<int> > &trialPMatrix); //calculate trial p vector and matrix
 
     //Checking
     void checkFidelity(); //check to ensure consistency

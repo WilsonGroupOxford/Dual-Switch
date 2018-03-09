@@ -48,6 +48,8 @@ void Network::construct(ofstream &logfile) {
     else initialiseAperiodicLattice();
     checkFidelity();
     initialiseMonteCarlo();
+    monteCarlo();
+
 
     return;
 }
@@ -276,24 +278,155 @@ void Network::initialiseMonteCarlo() {
     rTargetMu=1.0/rTargetMu;
 
     //random generators
-    metropolisGenerator.seed(mcSeed);
-    nodePickGenerator.seed(mcSeed+1);
-    metropolisDistribution=uniform_real_distribution<double>(0.0,1.0);
-    nodePickDistribution=uniform_int_distribution<int>(0,nNodes-1); //-1 as inclusive
+    randomGenerator.seed(mcSeed);
+    zeroOneDistribution=uniform_real_distribution<double>(0.0,1.0);
+    nodeDistribution=uniform_int_distribution<int>(0,nNodes-1); //-1 as inclusive
 
     return;
 }
 
 //###### Construction monte carlo ######
 
+void Network::monteCarlo() {
+    //main dual switch monte carlo process
+
+    //trial variables
+    vector<int> trialPVector;
+    vector< vector<int> > trialPMatrix;
+
+    //mc variables
+    vector<int> switchTriangles(4); //nodes making triangles to switch
+
+    if(!periodic){
+        for(int move=0; move<mcMaxMoves; ++move){
+            trialPVector=pVector;
+            trialPMatrix=pMatrix;
+            switchTriangles=pickRandomTrianglePairAperiodic();
+            calculateTrialPAperiodic(switchTriangles, trialPVector, trialPMatrix);
+            checkFidelity();
+        }
+    }
+
+    return;
+}
+
+vector<int> Network::pickRandomTrianglePairAperiodic() {
+    //pick four nodes that make up two triangles in dual, making sure connected pair not on edge and doesn't violate ring size limits
+
+    //indices 0,1 as connected pair, 2,3 as bridge.
+    //0,1 can't both be on edge
+    //0,1 when decremented can't be less than min ring size. 2,3 when incremented can't exceed max ring size
+    int ref0, ref1, ref2, ref3;
+    vector<int> trianglePair(4);
+
+    bool picked=false;
+    vector<int> commonNodes; //shared nodes, should be two
+    do{//loop until find valid pair
+        ref0=pickRandomNode();
+        if(!nodes[ref0].edge && nodes[ref0].size>minRingSize){//select node not on edge and within size limit
+            ref1=nodes[ref0].connections[pickRandomConnection(nodes[ref0].size)];
+            if(nodes[ref1].size>minRingSize){//select node within size limit
+                commonNodes=getCommonValuesBetweenVectors(nodes[ref0].connections, nodes[ref1].connections);
+                if(commonNodes.size()==2){//should always be two
+                    ref2=commonNodes[0];
+                    ref3=commonNodes[1];
+                    if(nodes[ref2].size<maxRingSize && nodes[ref3].size<maxRingSize) picked=true;
+                }
+            }
+        }
+    }while(!picked);
+
+    trianglePair[0]=ref0;
+    trianglePair[1]=ref1;
+    trianglePair[2]=ref2;
+    trianglePair[3]=ref3;
+
+    return trianglePair;
+}
+
+void Network::calculateTrialPAperiodic(vector<int> &triangles, vector<int> &trialPVector, vector<vector<int> > &trialPMatrix) {
+    //calculate trial p vector and matrix for proposed dual switch
+
+    //current vs trial sizes and whether edge
+    vector<int> currSizeIndex(4), trialSizeIndex(4);
+    vector<bool> edge(4);
+    for(int i=0; i<2; ++i){
+        currSizeIndex[i]=nodes[triangles[i]].sizeIndex;
+        trialSizeIndex[i]=currSizeIndex[i]-1;
+        edge[i]=nodes[triangles[i]].edge;
+    }
+    for(int i=2; i<4; ++i){
+        currSizeIndex[i]=nodes[triangles[i]].sizeIndex;
+        trialSizeIndex[i]=currSizeIndex[i]+1;
+        edge[i]=nodes[triangles[i]].edge;
+    }
+
+    //p vector
+    for(int i=0; i<4; ++i){
+        if(!edge[i]){
+            trialPVector[currSizeIndex[i]]=--trialPVector[currSizeIndex[i]];
+            trialPVector[trialSizeIndex[i]]=++trialPVector[trialSizeIndex[i]];
+        }
+    }
+
+    //p matrix
+    //consider only connections to nodes not in triangles first
+    vector<int> cnxs;
+    int nbSizeIndex;
+    for(int i=0; i<4; ++i){
+        if(!edge[i]){//if not on edge
+            cnxs=nodes[triangles[i]].connections;
+            removeValuesFromVectorByRef(cnxs,triangles);
+            for(int j=0; j<cnxs.size(); ++j){//loop over remaining connections
+                if(!nodes[cnxs[j]].edge){
+                    nbSizeIndex=nodes[cnxs[j]].sizeIndex;
+                    trialPMatrix[currSizeIndex[i]][nbSizeIndex]=--trialPMatrix[currSizeIndex[i]][nbSizeIndex];
+                    trialPMatrix[nbSizeIndex][currSizeIndex[i]]=--trialPMatrix[nbSizeIndex][currSizeIndex[i]];
+                    trialPMatrix[trialSizeIndex[i]][nbSizeIndex]=++trialPMatrix[trialSizeIndex[i]][nbSizeIndex];
+                    trialPMatrix[nbSizeIndex][trialSizeIndex[i]]=++trialPMatrix[nbSizeIndex][trialSizeIndex[i]];
+                }
+            }
+        }
+    }
+    //consider connections for nodes in triangles
+    for(int i=0; i<2; ++i){
+        if(!edge[i]){
+            for(int j=i+1; j<4; ++j){//break connections
+                if(!edge[j]){
+                    trialPMatrix[currSizeIndex[i]][currSizeIndex[j]]=--trialPMatrix[currSizeIndex[i]][currSizeIndex[j]];
+                    trialPMatrix[currSizeIndex[j]][currSizeIndex[i]]=--trialPMatrix[currSizeIndex[j]][currSizeIndex[i]];
+                }
+            }
+            for(int j=2; j<4; ++j){//make connections except 2->3
+                if(!edge[j]){
+                    trialPMatrix[trialSizeIndex[i]][trialSizeIndex[j]]=++trialPMatrix[trialSizeIndex[i]][trialSizeIndex[j]];
+                    trialPMatrix[trialSizeIndex[j]][trialSizeIndex[i]]=++trialPMatrix[trialSizeIndex[j]][trialSizeIndex[i]];
+                }
+            }
+        }
+    }
+    if(!edge[2] && !edge[3]){//2->3 connection
+        trialPMatrix[trialSizeIndex[2]][trialSizeIndex[3]]=++trialPMatrix[trialSizeIndex[2]][trialSizeIndex[3]];
+        trialPMatrix[trialSizeIndex[3]][trialSizeIndex[2]]=++trialPMatrix[trialSizeIndex[3]][trialSizeIndex[2]];
+    }
+
+    return;
+}
+
 double Network::metropolisRandomNum() {
     //random between 0->1
-    return metropolisDistribution(metropolisGenerator);
+    return zeroOneDistribution(randomGenerator);
 }
 
 int Network::pickRandomNode() {
     //random between 0->nNodes-1
-    return nodePickDistribution(nodePickGenerator);
+    return nodeDistribution(randomGenerator);
+}
+
+int Network::pickRandomConnection(int nCnxs) {
+    //random between 0->nCnxs
+    double rand=zeroOneDistribution(randomGenerator)*(nCnxs-1);
+    return round(rand);
 }
 
 //###### Construction checking ######
