@@ -5,6 +5,7 @@
 
 #include "customIO.h"
 #include "node.h"
+#include "vectorManip.h"
 
 using namespace std;
 
@@ -34,13 +35,20 @@ private:
     //Further network properties
     int minRingSize, maxRingSize, nRingSizes, index6, nNodes; //ring size limits, index of 6mr, number of nodes in network
     vector<Node> nodes; //nodes in network
-
+    vector<int> pVector; //number of nodes of each size
+    vector< vector<int> > pMatrix; //number of nodes adjacent to nodes of each size
+    vector<double> aboavWeaireParams; //alpha, mu, rsq
 
     //Further potential model variables
     vector< vector<double> > harmonicR0Matrix; //harmonic minimum for nodes of different sizes
 
     //Further monte carlo properties
-
+    double mcEnergy; //energy of system relative to target properties
+    double rMcTemperature, rTargetMu; //reciprocals of key values
+    vector<double> rTargetPVector; //reciprocals of key values
+    mt19937 nodePickGenerator, metropolisGenerator; //generators for distributions
+    uniform_int_distribution<int> nodePickDistribution; //mersenne twister uniform distribution between 0->nNodes
+    uniform_real_distribution<double> metropolisDistribution; //mersenne twister uniform distribution between 0->1
 
 
 
@@ -51,8 +59,14 @@ private:
     void initialisePotentialModel(); //make parameters for potential model
     void initialisePeriodicLattice(); //make initial periodic hexagonal lattice
     void initialiseAperiodicLattice(); //make initial aperiodic hexagonal lattice
-
     void initialiseMonteCarlo(); //set up variables and initialise random number generators
+
+    //Random numbers
+    int pickRandomNode(); //select node from network
+    double metropolisRandomNum(); //random number for mc metropolis condition
+
+    //Checking
+    void checkFidelity(); //check to ensure consistency
 
     //###### Write functions ######
     void writeDual(); //write out dual network

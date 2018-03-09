@@ -46,7 +46,8 @@ void Network::construct(ofstream &logfile) {
     initialisePotentialModel();
     if(periodic) initialisePeriodicLattice();
     else initialiseAperiodicLattice();
-
+    checkFidelity();
+    initialiseMonteCarlo();
 
     return;
 }
@@ -61,6 +62,7 @@ void Network::initialiseNetworkProperties() {
     nRingSizes=maxRingSize-minRingSize+1;
     index6=6-minRingSize; //index of 6mr
     nodes.clear();
+    aboavWeaireParams.resize(3,0.0);
 
     return;
 }
@@ -235,6 +237,104 @@ void Network::initialiseAperiodicLattice() {
             nodes[i].sizeIndex=nodes[i].size-minRingSize;
         }
     }
+
+    //set up p vector and matrix
+    int nodeRef;
+    pVector.resize(nRingSizes,0);
+    pMatrix.resize(nRingSizes, (vector<int> (nRingSizes,0)));
+    pVector[index6]=initialLatticeDimensions[0]*initialLatticeDimensions[1]; //set all rings as hexagons
+    for(int i=0; i<nNodes; ++i){
+        if(!nodes[i].edge){
+            for(int j=0; j<nodes[i].size; ++j){
+                nodeRef=nodes[i].connections[j];
+                if(!nodes[nodeRef].edge) pMatrix[nodes[i].sizeIndex][nodes[nodeRef].sizeIndex]=++pMatrix[nodes[i].sizeIndex][nodes[nodeRef].sizeIndex];
+            }
+        }
+    }
+
+    return;
+}
+
+void Network::initialiseMonteCarlo() {
+    //set up number generators and variables for mc
+
+    //energy infinite so first move accepted
+    mcEnergy=numeric_limits<double>::infinity();
+
+    //reciprocal values for faster calculation
+    if(mcTemperature==0.0) rMcTemperature=std::numeric_limits<double>::infinity();
+    else rMcTemperature=1.0/mcTemperature;
+    rTargetPVector.clear();
+    rTargetPVector.resize(nRingSizes);
+    for(int i=0; i<nRingSizes; ++i) {
+        if(targetPVector[i]>0) rTargetPVector[i]=1.0/targetPVector[i];
+        else rTargetPVector[i]=1.0;
+    }
+    rTargetMu=0.0;
+    for(int i=0; i<nRingSizes;++i) rTargetMu=rTargetMu+(minRingSize+i)*(minRingSize+i)*targetPVector[i];
+    rTargetMu=rTargetMu-36.0;
+    rTargetMu=1.0/rTargetMu;
+
+    //random generators
+    metropolisGenerator.seed(mcSeed);
+    nodePickGenerator.seed(mcSeed+1);
+    metropolisDistribution=uniform_real_distribution<double>(0.0,1.0);
+    nodePickDistribution=uniform_int_distribution<int>(0,nNodes-1); //-1 as inclusive
+
+    return;
+}
+
+//###### Construction monte carlo ######
+
+double Network::metropolisRandomNum() {
+    //random between 0->1
+    return metropolisDistribution(metropolisGenerator);
+}
+
+int Network::pickRandomNode() {
+    //random between 0->nNodes-1
+    return nodePickDistribution(nodePickGenerator);
+}
+
+//###### Construction checking ######
+
+void Network::checkFidelity() {
+    //check self consistency of dual and p vector/matrix
+
+    bool selfConsistent=true;
+    int nodeRef;
+    for(int i=0; i<nNodes; ++i){
+        if(nodes[i].size!=nodes[i].connections.size()) selfConsistent=false;
+        if(nodes[i].size!=nodes[i].sizeIndex+minRingSize) selfConsistent=false;
+        if(selfConsistent){
+            for(int j=0; j<nodes[i].size; ++j) if(!checkVectorForValue(nodes[nodes[i].connections[j]].connections,i)) selfConsistent=false;
+        }
+        else break;
+    }
+    cout<<"consistent: "<<selfConsistent<<endl;
+
+    vector<int> checkPVector(nRingSizes,0);
+    vector< vector<int> > checkPMatrix(nRingSizes,(vector<int> (nRingSizes,0)));
+    //reconstruct p vector/matrix from the dual and check with current p vector/matrix
+    int indexI, indexJ;
+    for(int i=0; i<nNodes; ++i){
+        if(!nodes[i].edge){
+            indexI=nodes[i].sizeIndex;
+            checkPVector[indexI]=++checkPVector[indexI];
+            for(int j=0; j<nodes[i].size; ++j){
+                if(!nodes[nodes[i].connections[j]].edge){
+                    indexJ=nodes[nodes[i].connections[j]].sizeIndex;
+                    checkPMatrix[indexI][indexJ]=++checkPMatrix[indexI][indexJ];
+                }
+            }
+        }
+    }
+    bool pVectorPass=true, pMatrixPass=true;
+    for(int i=0; i<nRingSizes; ++i){
+        if(pVector[i]!=checkPVector[i]) pVectorPass=false;
+        for(int j=0; j<nRingSizes; ++j) if(pMatrix[i][j]!=checkPMatrix[i][j]) pMatrixPass=false;
+    }
+    cout<<"p vector: "<<pVectorPass<<" p matrix: "<<pMatrixPass<<endl;
 
     return;
 }
