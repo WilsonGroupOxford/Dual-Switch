@@ -25,7 +25,7 @@ private:
     double temperature, propConvergence, alphaEnergyScaling; //for monte carlo, convergence for network properties, factor for functional
 
     //Potential Model and Geometry Optimisation
-    bool localGeomOpt, globalGeomOpt; //local geometry optimisation every step, global at end
+    bool localGeomOpt, globalGeomOpt, resolveOverlaps; //local geometry optimisation every step, global at end, resolve edge overlaps in dual
     int localGeomOptMaxIt, globalGeomOptMaxIt; //iterations for local/global optimisation
     double atomDistance, harmonicK, localGeomOptConv, globalGeomOptConv; //between atoms in network, force constant, local/global force convergence criteria
 

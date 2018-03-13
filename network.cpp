@@ -20,9 +20,10 @@ void Network::setProperties(bool per, bool readIn, vector<int> latDim, vector<in
     return;
 }
 
-void Network::setPotential(double sep) {
+void Network::setPotential(double sep, bool overlap) {
     //set potential model parameters
     atomicSeparation=sep;
+    resolveDualOverlaps=overlap;
     return;
 }
 
@@ -430,7 +431,7 @@ void Network::monteCarlo() {
             trialAwParameters=calculateAboavWeaireFit(trialPVector,trialPMatrix);
             trialMcEnergy=mcEnergyFunctional(trialAwParameters,trialPVector);
             acceptTrialMove=evaluateMetropolisCondition(trialMcEnergy,mcEnergy);
-            if(acceptTrialMove) mcTargetReached=acceptDualSwitch(switchTriangles,trialPVector,trialPMatrix,trialMcEnergy,trialAwParameters);
+            if(acceptTrialMove) mcTargetReached=acceptDualSwitchPeriodic(switchTriangles,trialPVector,trialPMatrix,trialMcEnergy,trialAwParameters);
             if(mcTargetReached){
                 mcProposedMoves=move+1;
                 break;
@@ -446,7 +447,7 @@ void Network::monteCarlo() {
             trialAwParameters=calculateAboavWeaireFit(trialPVector,trialPMatrix);
             trialMcEnergy=mcEnergyFunctional(trialAwParameters,trialPVector);
             acceptTrialMove=evaluateMetropolisCondition(trialMcEnergy,mcEnergy);
-            if(acceptTrialMove) mcTargetReached=acceptDualSwitch(switchTriangles,trialPVector,trialPMatrix,trialMcEnergy,trialAwParameters);
+            if(acceptTrialMove) mcTargetReached=acceptDualSwitchAperiodic(switchTriangles,trialPVector,trialPMatrix,trialMcEnergy,trialAwParameters);
             if(mcTargetReached){
                 mcProposedMoves=move+1;
                 break;
@@ -703,7 +704,7 @@ bool Network::evaluateMetropolisCondition(double &trialEnergy, double &currEnerg
     return accept;
 }
 
-bool Network::acceptDualSwitch(vector<int> &switchTriangles, vector<int> &trialPVec, vector<vector<int> > &trialPMat, double &trialMcEnergy, vector<double> &trialAwParams) {
+bool Network::acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int> &trialPVec, vector<vector<int> > &trialPMat, double &trialMcEnergy, vector<double> &trialAwParams) {
     //enact dual switch on nodes and update trial-> current variables
 
     //make/break connections
@@ -712,10 +713,40 @@ bool Network::acceptDualSwitch(vector<int> &switchTriangles, vector<int> &trialP
     nodes[switchTriangles[2]].makeConnection(switchTriangles[3]);
     nodes[switchTriangles[3]].makeConnection(switchTriangles[2]);
 
+    //update vectors
     pVector=trialPVec;
     pMatrix=trialPMat;
     mcEnergy=trialMcEnergy;
     aboavWeaireParams=trialAwParams;
+
+    //untangle dual if introduced overlaps
+//    if(resolveDualOverlaps) findAndResolveDualOverlaps(switchTriangles);
+
+    cout<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
+//    consoleVector(switchTriangles);
+//    checkFidelity();
+
+    if(mcEnergy<=mcConvergence) return true;
+    else return false;
+}
+
+bool Network::acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int> &trialPVec, vector<vector<int> > &trialPMat, double &trialMcEnergy, vector<double> &trialAwParams) {
+    //enact dual switch on nodes and update trial-> current variables
+
+    //make/break connections
+    nodes[switchTriangles[0]].breakConnection(switchTriangles[1]);
+    nodes[switchTriangles[1]].breakConnection(switchTriangles[0]);
+    nodes[switchTriangles[2]].makeConnection(switchTriangles[3]);
+    nodes[switchTriangles[3]].makeConnection(switchTriangles[2]);
+
+    //update vectors
+    pVector=trialPVec;
+    pMatrix=trialPMat;
+    mcEnergy=trialMcEnergy;
+    aboavWeaireParams=trialAwParams;
+
+    //untangle dual if introduced overlaps
+    if(resolveDualOverlaps) findAndResolveDualOverlapsAperiodic(switchTriangles);
 
     cout<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
 //    consoleVector(switchTriangles);
@@ -772,6 +803,34 @@ void Network::findNodeRings() {
         }
     }
     nRings=nodeRings.size(); //number of rings in network
+
+    return;
+}
+
+void Network::findAndResolveDualOverlapsAperiodic(vector<int> &switchTriangles) {
+    //check if dual switch move introduces node edge overlap, and if so move nodes to resolve
+
+    //edges for overlap, edge 1 is the new edge constructed by the mc move
+    Crd2d edge1a, edge1b, edge2a, edge2b; //coordinates of edges to check intersection
+    edge1a=nodes[switchTriangles[2]].coordinate;
+    edge1b=nodes[switchTriangles[3]].coordinate;
+
+    //check overlap with first node in triangle pair, which had a connection broken
+    vector<int> cnxs=nodes[switchTriangles[0]].connections; //get connections
+    removeValueFromVectorByRef(cnxs,switchTriangles[2]); //remove link to other nodes in triangle pair
+    removeValueFromVectorByRef(cnxs,switchTriangles[3]); //remove link to other nodes in triangle pair
+    bool overlap=false;
+    edge2a=nodes[switchTriangles[0]].coordinate;
+    for(int i=0; i<cnxs.size(); ++i){
+        edge2b=nodes[cnxs[i]].coordinate;
+        if(properIntersectionLines(edge1a,edge1b,edge2a,edge2b)){
+            overlap=true;
+            break;
+        }
+    }
+    if(overlap){//if overlap move node
+
+    }
 
     return;
 }
@@ -838,7 +897,7 @@ void Network::checkGeometry() {
             vector<Crd2d> recentredCrds(ringSize+1);
             for(int j=0; j<ringSize; ++j) recentredCrds[j]=nodes[nodeRings[i].chain[j]].coordinate;
             recentredCrds[ringSize]=nodes[nodeRings[i].chain[ringSize]].coordinate;
-            for(int j=0; j<ringSize+1; ++j) recentredCrds[j]=vectorFromCrds(nodes[i].coordinate, recentredCrds[j], periodicBoxX, periodicBoxY, rPeriodicBoxY, rPeriodicBoxY);
+            for(int j=0; j<ringSize+1; ++j) recentredCrds[j]=recentreCrdByCrd(nodes[i].coordinate, recentredCrds[j], periodicBoxX, periodicBoxY, rPeriodicBoxY, rPeriodicBoxY);
 
             //check overlap of recentred edges
             edge1a=origin; //coordinate of central node
@@ -953,7 +1012,7 @@ void Network::writePeriodicNetwork() {
 
     //remake connections to nearest image
     int nodeRef;
-    Crd2d imageVec;
+    Vec2d imageVec;
     vector<int> images, cnxCopy;
     vector<double> distances;
     double micX=periodicBoxX*0.5, micY=periodicBoxY*0.5; //minimum image convention

@@ -25,6 +25,7 @@ private:
     vector<double> targetPVector; //target ring statistics
 
     //Potential model
+    bool resolveDualOverlaps; //whether to untangle dual after each mc move accepted
     double atomicSeparation; //ideal distance between atoms
 
     //Monte carlo dual switching properties
@@ -82,8 +83,11 @@ private:
     vector<double> calculateAboavWeaireFit(vector<int> &pVec, vector< vector<int> > &pMat); //calculate Aboav-Weaire parameters
     double mcEnergyFunctional(vector<double> &awParams, vector<int> &pVec); //calculate energy for mc
     bool evaluateMetropolisCondition(double &trialEnergy, double &currEnergy); //accept or reject mc move
-    bool acceptDualSwitch(vector<int> &switchTriangles, vector<int> &trialPVec, vector< vector<int> > &trialPMat, double &trialMcEnergy, vector<double> &trialAwParams); //enact dual switch and update trial->current variables
+    bool acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int> &trialPVec, vector< vector<int> > &trialPMat, double &trialMcEnergy, vector<double> &trialAwParams); //enact dual switch and update trial->current variables
+    bool acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int> &trialPVec, vector< vector<int> > &trialPMat, double &trialMcEnergy, vector<double> &trialAwParams); //enact dual switch and update trial->current variables
     void findNodeRings(); //find rings of nodes
+//    void findAndResolveDualOverlapsPeriodic(vector<int> &switchTriangles); //untangle dual
+    void findAndResolveDualOverlapsAperiodic(vector<int> &switchTriangles); //untangle dual
 
     //Checking
     void checkFidelity(); //check to ensure consistency
@@ -96,7 +100,7 @@ private:
 public:
     void setIO(string in, string out); //set input/output properties
     void setProperties(bool per, bool readIn, vector<int> latDim, vector<int> ringLim, double alpha, vector<double> p); //set initial and target network properties
-    void setPotential(double sep); //set parameters for potential model
+    void setPotential(double sep, bool overlap); //set parameters for potential model
     void setMonteCarlo(int seed, double t, int moves, double conv, double asf); //set monte carlo limits
     void setAnalysis(bool perVis); //set analysis tools
     bool getConsistency(); //get whether network constructed is consistent

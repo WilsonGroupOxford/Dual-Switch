@@ -1,21 +1,55 @@
 #include "crd.h"
 
+Crd2d::Crd2d() {
+    x=0.0;
+    y=0.0;
+    return;
+}
+
+Crd2d::Crd2d(double xInit, double yInit) {
+    x=xInit;
+    y=yInit;
+    return;
+}
+
+Vec2d::Vec2d() {
+    x=0.0;
+    y=0.0;
+    return;
+}
+
+Vec2d::Vec2d(double xInit, double yInit) {
+    x=xInit;
+    y=yInit;
+    return;
+}
+
+
 double crdDistance(Crd2d &c1, Crd2d &c2){
     //distance between two coordiates in 2d
     return sqrt((c2.x-c1.x)*(c2.x-c1.x)+(c2.y-c1.y)*(c2.y-c1.y));
 }
-double vectorLength(Crd2d &v){
-    //length of vector
-    return sqrt(v.x*v.x+v.y*v.y);
+
+Crd2d recentreCrdByCrd(Crd2d &c1, Crd2d &c2){
+    //shift c2 relative to c1
+    return Crd2d((c2.x-c1.x),(c2.y-c1.y));
+}
+Crd2d recentreCrdByCrd(Crd2d &c1, Crd2d &c2, double &x, double &y, double &rX, double &rY){
+    //shift c2-c1 with periodic boundary conditions
+    Crd2d c((c2.x-c1.x),(c2.y-c1.y));
+    c.x=c.x-x*round(c.x*rX);
+    c.y=c.y-y*round(c.y*rY);
+    return c;
 }
 
-Crd2d vectorFromCrds(Crd2d &c1, Crd2d &c2){
+
+Vec2d vectorFromCrds(Crd2d &c1, Crd2d &c2){
     //vector c2-c1
-    return {(c2.x-c1.x),(c2.y-c1.y)};
+    return Vec2d((c2.x-c1.x),(c2.y-c1.y));
 }
-Crd2d vectorFromCrds(Crd2d &c1, Crd2d &c2, double &x, double &y, double &rX, double &rY){
+Vec2d vectorFromCrds(Crd2d &c1, Crd2d &c2, double &x, double &y, double &rX, double &rY){
     //vector c2-c1 with periodic boundary conditions
-    Crd2d vec((c2.x-c1.x),(c2.y-c1.y));
+    Vec2d vec((c2.x-c1.x),(c2.y-c1.y));
     vec.x=vec.x-x*round(vec.x*rX);
     vec.y=vec.y-y*round(vec.y*rY);
     return vec;
