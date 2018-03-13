@@ -36,6 +36,7 @@ void HarmonicMinimiser::steepestDescent() {
         calculateForces();
         lineSearch();
         checkConvergence();
+//        cout<<iterations<<" "<<currentEnergy<<endl;
         if(complete) break;
     }
     return;
@@ -124,7 +125,7 @@ void HarmonicMinimiser::checkConvergence() {
         converged=true;
         return;
     }
-    double deltaE=currentEnergy-previousEnergy;
+    double deltaE=previousEnergy-currentEnergy;
     previousEnergy=currentEnergy;
     if(deltaE<1e-6) deltaEZeroCount=++deltaEZeroCount;
     else deltaEZeroCount=0; //reset counter
@@ -134,6 +135,11 @@ void HarmonicMinimiser::checkConvergence() {
         return;
     }
     return;
+}
+
+vector<Crd2d> HarmonicMinimiser::getMinimisedCoordinates() {
+    //return minimised coordinates
+    return coordinates;
 }
 
 void HarmonicMinimiser::runTests() {

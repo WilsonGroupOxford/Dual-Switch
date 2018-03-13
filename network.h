@@ -89,7 +89,9 @@ private:
     void findNodeRings(); //find rings of nodes
 //    void findAndResolveDualOverlapsPeriodic(vector<int> &switchTriangles); //untangle dual
     void findAndResolveDualOverlapsAperiodic(vector<int> &switchTriangles); //untangle dual
-    void localMinimisationAperiodic(); //minimise locally
+    void localMinimisationAperiodic(vector<int> &switchTriangles); //minimise locally
+    vector<int> nextTopologicalShell(vector<int> &currentShell); //find two-sided topological shell
+    vector<int> nextTopologicalShell(vector<int> &currentShell, vector<int> &prevShell); //find two-sided topological shell
 
     //Checking
     void checkFidelity(); //check to ensure consistency

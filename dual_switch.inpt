@@ -5,7 +5,7 @@ IO
 Network Properties
 0          periodic
 0           use existing network (P)
-10 10     starting bulk hexagonal lattice dimensions (even for periodic)
+20 20     starting bulk hexagonal lattice dimensions (even for periodic)
 4 10      ring size limits
 -0.3       target alpha
 0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics
@@ -13,13 +13,13 @@ Network Properties
 Simulation Parameters
 0 0         random seed range (inclusive)
 0.0001      temperature
-1662     maximum proposed monte carlo moves
+1820     maximum proposed monte carlo moves
 0.001        energy convergence criteria
 10.0          alpha energy scaling factor
 --------------------------------------
 Potential Model and Geometry Optimisation
 1.42        si-si distance
-0           resolve dual overlaps
+1           resolve dual overlaps
 1.0         harmonic k
 0           locally minimise every step
 100         maximum iterations

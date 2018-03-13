@@ -43,6 +43,7 @@ public:
     HarmonicMinimiser(vector<Crd2d> crds, vector<Pair> harmPairs, vector<int> fixedPnts,
                       vector<double> harmR0, double harmK, double cc, double inc, int maxIt);
     void steepestDescent(); //steepest descent minimisation
+    vector<Crd2d> getMinimisedCoordinates(); //return minimised coordinates
 };
 
 

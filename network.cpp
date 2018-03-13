@@ -751,7 +751,7 @@ bool Network::acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int
     if(resolveDualOverlaps) findAndResolveDualOverlapsAperiodic(switchTriangles);
 
     //locally minimise
-    localMinimisationAperiodic();
+    localMinimisationAperiodic(switchTriangles);
 
     cout<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
 //    consoleVector(switchTriangles);
@@ -866,13 +866,83 @@ void Network::findAndResolveDualOverlapsAperiodic(vector<int> &switchTriangles) 
     return;
 }
 
-void Network::localMinimisationAperiodic() {
+void Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
     //minimse within 1 connection of triangle pair
 
-    HarmonicMinimiser minimise();
+    //get next two topological shells
+    vector<int> minimisationRegion=switchTriangles;
+    vector<int> nextShell=nextTopologicalShell(switchTriangles);
+    vector<int> fixedRegion=nextTopologicalShell(nextShell,switchTriangles);
 
+    //minimisation region contains all shells, fixed region just outermost shell
+    addValuesToVectorByRef(minimisationRegion,nextShell);
+    addValuesToVectorByRef(minimisationRegion,fixedRegion);
+
+    //set up global maps
+    int nMinNodes=minimisationRegion.size();
+    map<int,int> globalToLocalMap;
+    vector<Crd2d> localCoordinates(nMinNodes);
+    for(int i=0; i<nMinNodes; ++i){
+        globalToLocalMap[minimisationRegion[i]]=i;
+        localCoordinates[i]=nodes[minimisationRegion[i]].coordinate;
+    }
+
+    //make unique list of harmonic pairs
+    vector<Pair> localHarmonicPairs;
+    vector<double> localHarmonicR0;
+    localHarmonicPairs.clear();
+    localHarmonicR0.clear();
+    int globalA, globalB, indexA, indexB;
+    for(int i=0; i<nMinNodes; ++i){
+        globalA=minimisationRegion[i];
+        for(int j=0; j<nodes[globalA].size; ++j){
+            globalB=nodes[globalA].connections[j];
+            if(globalToLocalMap.count(globalB)) {//only include if in minimisation region
+                if(globalA<globalB){//prevent double counting
+                    localHarmonicPairs.push_back(Pair(globalToLocalMap[globalA],globalToLocalMap[globalB]));
+                    if(nodes[globalA].edge) indexA=index6;
+                    else indexA=nodes[globalA].sizeIndex;
+                    if(nodes[globalB].edge) indexB=index6;
+                    else indexB=nodes[globalB].sizeIndex;
+                    localHarmonicR0.push_back(harmonicR0Matrix[indexA][indexB]);
+                }
+            }
+        }
+    }
+
+    //convert fixed region to local
+    for(int i=0; i<fixedRegion.size(); ++i) fixedRegion[i]=globalToLocalMap[fixedRegion[i]];
+
+    //minimise
+    HarmonicMinimiser localMinimiser(localCoordinates,localHarmonicPairs,fixedRegion,localHarmonicR0,1.0,0.1,0.01,100);
+    localMinimiser.steepestDescent();
+    localCoordinates=localMinimiser.getMinimisedCoordinates();
+
+    //update global coordinates
+    for(int i=0; i<nMinNodes; ++i) nodes[minimisationRegion[i]].coordinate=localCoordinates[i];
 
     return;
+}
+
+vector<int> Network::nextTopologicalShell(vector<int> &currentShell) {
+    //find next topological shell of nodes around central nodes
+    vector<int> nextShell;
+    nextShell.clear();
+    for(int i=0; i<currentShell.size(); ++i) addValuesToVectorByRef(nextShell, nodes[currentShell[i]].connections);
+    nextShell=sortVectorRemoveDuplicates(nextShell);
+    removeValuesFromVectorByRef(nextShell,currentShell);
+    return nextShell;
+}
+
+vector<int> Network::nextTopologicalShell(vector<int> &currentShell, vector<int> &prevShell) {
+    //find next topological shell of nodes around central nodes
+    vector<int> nextShell;
+    nextShell.clear();
+    for(int i=0; i<currentShell.size(); ++i) addValuesToVectorByRef(nextShell, nodes[currentShell[i]].connections);
+    nextShell=sortVectorRemoveDuplicates(nextShell);
+    removeValuesFromVectorByRef(nextShell,currentShell);
+    removeValuesFromVectorByRef(nextShell,prevShell);
+    return nextShell;
 }
 
 //###### Construction checking ######
