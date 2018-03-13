@@ -37,6 +37,9 @@ private:
     //Logfile
     string logfileName; //name of log file
 
+    //Calculation status
+    vector<bool> networkConsistent, networkTargetsReached;
+
     void readInputFile(); //read in simulation parameters
     void initialiseNetwork(Network &network, int seed); //set up network with input properties and given random seed
 

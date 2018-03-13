@@ -17,6 +17,11 @@ vector<int> getCommonValuesBetweenVectors(vector<int> v1, vector<int> v2) {
     return common;
 }
 
+void removeValueFromVectorByRef(vector<int> &vec, int &value){
+    //remove vector of values from vector
+    vec.erase(remove(vec.begin(), vec.end(), value), vec.end());
+}
+
 void removeValuesFromVectorByRef(vector<int> &vec, vector<int> &values){
     //remove vector of values from vector
     for (int i=0; i<values.size();++i){

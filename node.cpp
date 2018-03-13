@@ -45,3 +45,21 @@ void Node::breakConnection(int cnx) {
     sizeIndex=--sizeIndex;
     return;
 }
+
+Ring::Ring() {
+    //default constructor
+    size=6;
+    id=-1;
+    chain=new int[size+1](); //+1 as one node repeated at start and end
+    return;
+}
+
+Ring::Ring(int s, vector<int> c, int d) {
+    //construct of given size with provided nodes
+    size=s;
+    id=d;
+    chain=new int[size+1]();
+    for(int i=0; i<size; ++i) chain[i]=c[i];
+    chain[size]=c[0];
+    return;
+}

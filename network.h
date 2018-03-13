@@ -37,14 +37,15 @@ private:
     //###### Construction variables ######
 
     //Further network properties
-    bool consistent; //network and p vector/matrix consistent
+    bool consistent, noOverlap; //network and p vector/matrix consistent, check for edge ovelap
     string name; //name of network for writing to files
-    int minRingSize, maxRingSize, nRingSizes, index6, nNodes; //ring size limits, index of 6mr, number of nodes in network
+    int minRingSize, maxRingSize, nRingSizes, index6, nNodes, nRings; //ring size limits, index of 6mr, number of nodes in network, number of rings in network
     double periodicBoxX, periodicBoxY, rPeriodicBoxX, rPeriodicBoxY; //dimensions of periodic box and reciprocals
     vector<Node> nodes; //nodes in network
     vector<int> pVector; //number of nodes of each size
     vector< vector<int> > pMatrix; //number of nodes adjacent to nodes of each size
     vector<double> aboavWeaireParams; //alpha, mu, rsq
+    vector<Ring> nodeRings; //rings in dual graph
 
     //Further potential model variables
     vector< vector<double> > harmonicR0Matrix; //harmonic minimum for nodes of different sizes
@@ -58,8 +59,6 @@ private:
     mt19937 randomGenerator; //generator for distributions
     uniform_int_distribution<int> nodeDistribution; //mersenne twister uniform distribution between 0->nNodes
     uniform_real_distribution<double> zeroOneDistribution, connectionPickDistribution; //mersenne twister uniform distribution between 0->1
-
-
 
     //###### Construction functions ######
 
@@ -84,9 +83,11 @@ private:
     double mcEnergyFunctional(vector<double> &awParams, vector<int> &pVec); //calculate energy for mc
     bool evaluateMetropolisCondition(double &trialEnergy, double &currEnergy); //accept or reject mc move
     bool acceptDualSwitch(vector<int> &switchTriangles, vector<int> &trialPVec, vector< vector<int> > &trialPMat, double &trialMcEnergy, vector<double> &trialAwParams); //enact dual switch and update trial->current variables
+    void findNodeRings(); //find rings of nodes
 
     //Checking
     void checkFidelity(); //check to ensure consistency
+    void checkGeometry(); //check for node edge overlap
 
     //###### Write functions ######
     void writeDual(); //write out dual network
@@ -98,6 +99,8 @@ public:
     void setPotential(double sep); //set parameters for potential model
     void setMonteCarlo(int seed, double t, int moves, double conv, double asf); //set monte carlo limits
     void setAnalysis(bool perVis); //set analysis tools
+    bool getConsistency(); //get whether network constructed is consistent
+    bool getTargetStatus(); //get whether target is met
     void construct(ofstream &logfile); //aim to make network with supplied properties
     void write(); //write out control
 };

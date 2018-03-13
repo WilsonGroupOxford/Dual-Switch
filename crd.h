@@ -28,6 +28,12 @@ double vectorLength(Crd2d &v);
 Crd2d vectorFromCrds(Crd2d &c1, Crd2d &c2);
 Crd2d vectorFromCrds(Crd2d &c1, Crd2d &c2, double &x, double &y, double &rX, double &rY);
 
+//computational geometry in c
+double signedAreaSqTriangle(Crd2d &a, Crd2d &b, Crd2d &c);
+bool leftTriangle(Crd2d &a, Crd2d &b, Crd2d &c);
+bool collinearPoints(Crd2d &a, Crd2d &b, Crd2d &c, double threshold=0.00001);
+bool properIntersectionLines(Crd2d &l1a, Crd2d &l1b, Crd2d &l2a, Crd2d &l2b);
+
 //other useful maths functions
 vector<double> leastSquaresLinearRegression(vector<Crd2d> &data);
 

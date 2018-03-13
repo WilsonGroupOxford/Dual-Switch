@@ -45,6 +45,16 @@ void Network::setAnalysis(bool perVis) {
 
 //###### GETTERS ######
 
+bool Network::getConsistency() {
+    //whether generated network is self consistent
+    return consistent;
+}
+
+bool Network::getTargetStatus() {
+    //whether network achieved targets
+    return mcTargetReached;
+}
+
 //###### Construction Main ######
 
 void Network::construct(ofstream &logfile) {
@@ -67,6 +77,13 @@ void Network::construct(ofstream &logfile) {
     if(mcTargetReached) writeFileLine(logfile, name+" targets met in "+to_string(mcProposedMoves)+" monte carlo moves");
     else writeFileLine(logfile, name+" targets not met");
 
+    if(consistent){
+        findNodeRings();
+        checkGeometry();
+        if(noOverlap) writeFileLine(logfile,name+" has non-overlapping dual");
+        else writeFileLine(logfile,name+" has overlapping dual");
+    }
+
 
 
 
@@ -83,6 +100,7 @@ void Network::initialiseNetworkProperties() {
     nRingSizes=maxRingSize-minRingSize+1;
     index6=6-minRingSize; //index of 6mr
     nodes.clear();
+    nodeRings.clear();
     aboavWeaireParams.resize(3,0.0);
 
     return;
@@ -723,6 +741,41 @@ int Network::pickRandomConnection(int nCnxs) {
     return round(rand);
 }
 
+void Network::findNodeRings() {
+    //find rings of nodes in dual graph around each central node
+
+    vector<int> centralCnxs, outerCnxs; //cnxs surrounding central node and nodes in ring
+    vector<int> ring; //ring around central node
+    for(int i=0; i<nNodes; ++i){//loop over all nodes in graph not on edge
+        if(!nodes[i].edge){
+            ring.resize(nodes[i].size);
+            centralCnxs=nodes[i].connections; //get connections around central ring
+            ring[0]=centralCnxs[0]; //pick first connection as starting point
+            outerCnxs=nodes[ring[0]].connections;
+            for(int j=0; j<outerCnxs.size(); ++j){//find second connection in ring
+                if(checkVectorForValue(centralCnxs,outerCnxs[j])){
+                    ring[1]=outerCnxs[j];
+                    break;
+                };
+            }
+            for(int j=2; j<nodes[i].size; ++j){//find remaining connections
+                outerCnxs=nodes[ring[j-1]].connections;
+                removeValueFromVectorByRef(outerCnxs,ring[j-2]); //remove previous node in chain
+                for(int k=0; k<outerCnxs.size(); ++k){
+                    if(checkVectorForValue(centralCnxs,outerCnxs[k])) {
+                        ring[j] = outerCnxs[k];
+                        break;
+                    }
+                }
+            }
+            nodeRings.push_back(Ring(nodes[i].size,ring,i));
+        }
+    }
+    nRings=nodeRings.size(); //number of rings in network
+
+    return;
+}
+
 //###### Construction checking ######
 
 void Network::checkFidelity() {
@@ -765,6 +818,60 @@ void Network::checkFidelity() {
 
     if(selfConsistent && pVectorPass && pMatrixPass) consistent=true;
     else consistent=false;
+
+    return;
+}
+
+void Network::checkGeometry() {
+    //check for node edge overlap which would lead to ring overlap
+
+    //loop over node rings, check central->ring edge does not overlap with ring->ring edge
+    noOverlap=true;
+    int ringSize;
+    Crd2d edge1a, edge1b, edge2a, edge2b; //coordinates of edges to check intersection
+    if(periodic){
+        Crd2d origin;
+        for(int i=0; i<nRings; ++i){
+            ringSize=nodeRings[i].size;
+
+            //recentre ring on central node to account for pbc
+            vector<Crd2d> recentredCrds(ringSize+1);
+            for(int j=0; j<ringSize; ++j) recentredCrds[j]=nodes[nodeRings[i].chain[j]].coordinate;
+            recentredCrds[ringSize]=nodes[nodeRings[i].chain[ringSize]].coordinate;
+            for(int j=0; j<ringSize+1; ++j) recentredCrds[j]=vectorFromCrds(nodes[i].coordinate, recentredCrds[j], periodicBoxX, periodicBoxY, rPeriodicBoxY, rPeriodicBoxY);
+
+            //check overlap of recentred edges
+            edge1a=origin; //coordinate of central node
+            for(int j=0; j<ringSize; ++j){
+                edge1b=recentredCrds[j]; //coordinate of ring node
+                for(int k=0; k<ringSize; ++k){
+                    edge2a=recentredCrds[k]; //coordinated of ring node
+                    edge2b=recentredCrds[k+1]; //coordinated of ring node
+                    if(properIntersectionLines(edge1a,edge1b,edge2a,edge2b)){
+                        noOverlap=false;
+//                        cout<<nodeRings[i].id<<" "<<nodeRings[i].chain[j]<<" "<<nodeRings[i].chain[k]<<" "<<nodeRings[i].chain[k+1]<<endl;
+                    }
+                }
+            }
+        }
+    }
+    else{
+        for(int i=0; i<nRings; ++i){
+            ringSize=nodeRings[i].size;
+            edge1a=nodes[nodeRings[i].id].coordinate; //coordinate of central node
+            for(int j=0; j<ringSize; ++j){
+                edge1b=nodes[nodeRings[i].chain[j]].coordinate; //coordinate of ring node
+                for(int k=0; k<ringSize; ++k){
+                    edge2a=nodes[nodeRings[i].chain[k]].coordinate; //coordinate of ring node
+                    edge2b=nodes[nodeRings[i].chain[k+1]].coordinate; //coordinate of ring node
+                    if(properIntersectionLines(edge1a,edge1b,edge2a,edge2b)){
+                        noOverlap=false;
+//                        cout<<nodeRings[i].id<<" "<<nodeRings[i].chain[j]<<" "<<nodeRings[i].chain[k]<<" "<<nodeRings[i].chain[k+1]<<endl;
+                    }
+                }
+            }
+        }
+    }
 
     return;
 }

@@ -9,6 +9,8 @@ void Simulation::run() {
     //perform network generation and analysis for the given random seeds
     writeFileLine(logfile,"Network Generation and Analysis");
     writeFileDashes(logfile);
+    networkConsistent.clear();
+    networkTargetsReached.clear();
     for(int seed=randomSeedLimits[0]; seed<=randomSeedLimits[1]; ++seed){
         cout<<seed<<endl;
 
@@ -16,6 +18,8 @@ void Simulation::run() {
         initialiseNetwork(network,seed);
         network.construct(logfile);
 
+        networkConsistent.push_back(network.getConsistency());
+        networkTargetsReached.push_back(network.getConsistency());
 
         network.write();
 
