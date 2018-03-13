@@ -815,21 +815,47 @@ void Network::findAndResolveDualOverlapsAperiodic(vector<int> &switchTriangles) 
     edge1a=nodes[switchTriangles[2]].coordinate;
     edge1b=nodes[switchTriangles[3]].coordinate;
 
-    //check overlap with first node in triangle pair, which had a connection broken
-    vector<int> cnxs=nodes[switchTriangles[0]].connections; //get connections
-    removeValueFromVectorByRef(cnxs,switchTriangles[2]); //remove link to other nodes in triangle pair
-    removeValueFromVectorByRef(cnxs,switchTriangles[3]); //remove link to other nodes in triangle pair
+    //check overlap with each side of triangle pair
     bool overlap=false;
-    edge2a=nodes[switchTriangles[0]].coordinate;
-    for(int i=0; i<cnxs.size(); ++i){
-        edge2b=nodes[cnxs[i]].coordinate;
-        if(properIntersectionLines(edge1a,edge1b,edge2a,edge2b)){
-            overlap=true;
+    for(int n=0; n<2; ++n){
+        vector<int> cnxs=nodes[switchTriangles[n]].connections; //get connections
+        removeValueFromVectorByRef(cnxs,switchTriangles[2]); //remove link to other nodes in triangle pair
+        removeValueFromVectorByRef(cnxs,switchTriangles[3]); //remove link to other nodes in triangle pair
+        edge2a=nodes[switchTriangles[n]].coordinate;
+        for(int i=0; i<cnxs.size(); ++i){
+            edge2b=nodes[cnxs[i]].coordinate;
+            if(properIntersectionLines(edge1a,edge1b,edge2a,edge2b)){
+                overlap=true;
+                break;
+            }
+        }
+        if(overlap){//if overlap move node
+            //set up orthogonal axes with second triangle pair 2->3
+//            Vec2d xAxis, yAxis;
+//            yAxis=Vec2d(edge1a,edge1b);
+//            yAxis.normalise();
+//            xAxis=yAxis;
+//            xAxis.rotate90();
+//            //get vector in direction of 2->0/1, and components along axes
+//            Vec2d vec=Vec2d(edge1a,edge2a);
+//            double xAxisComponent=-vectorDotProduct(vec,xAxis), yAxisComponent=vectorDotProduct(vec,yAxis);
+//            //reflect node 0/1 in yAxis
+//            vec.x=xAxis.x*xAxisComponent+yAxis.x*yAxisComponent;
+//            vec.y=xAxis.y*xAxisComponent+yAxis.y*yAxisComponent;
+//            nodes[switchTriangles[n]].coordinate=crdFromVectorAndCrd(vec,edge1a);
+            Vec2d moveDirection, direction;
+            for(int i=0; i<cnxs.size(); ++i){
+                direction=Vec2d(edge2a,nodes[cnxs[i]].coordinate);
+                direction.normalise();
+                moveDirection.addVector(direction);
+            }
+            moveDirection.normalise();
+            nodes[switchTriangles[n]].coordinate.x=nodes[switchTriangles[n]].coordinate.x+moveDirection.x;
+            nodes[switchTriangles[n]].coordinate.y=nodes[switchTriangles[n]].coordinate.y+moveDirection.y;
+
+            cout<<"***"<<endl;
             break;
         }
-    }
-    if(overlap){//if overlap move node
-
     }
 
     return;
@@ -1023,7 +1049,7 @@ void Network::writePeriodicNetwork() {
             nodeRef=cnxCopy[j];
             images=nodeImageMap[nodeRef];
             for(int k=0; k<images.size(); ++k){
-                imageVec=vectorFromCrds(periodicNodes[i].coordinate,periodicNodes[images[k]].coordinate);
+                imageVec=Vec2d(periodicNodes[i].coordinate,periodicNodes[images[k]].coordinate);
                 if(fabs(imageVec.x)<=micX && fabs(imageVec.y)<=micY){
                     periodicNodes[i].addConnection(images[k]);
                     break;

@@ -24,18 +24,26 @@ struct Vec2d{
     double x, y;
     Vec2d();
     Vec2d(double xInit, double yInit);
+    Vec2d(Crd2d c1, Crd2d c2);
+    Vec2d(Crd2d c1, Crd2d c2, double pbcX, double pbcY, double rX, double rY);
+    double length();
+    void normalise();
+    void rotate90();
+    void addVector(Vec2d v);
 };
+
+
+
+
 
 //constants
 double const pi=M_PI;
 
-//coordinate manipulations
 double crdDistance(Crd2d &c1, Crd2d &c2);
 Crd2d recentreCrdByCrd(Crd2d &c1, Crd2d &c2);
 Crd2d recentreCrdByCrd(Crd2d &c1, Crd2d &c2, double &x, double &y, double &rX, double &rY);
-Vec2d vectorFromCrds(Crd2d &c1, Crd2d &c2);
-Vec2d vectorFromCrds(Crd2d &c1, Crd2d &c2, double &x, double &y, double &rX, double &rY);
-
+Crd2d crdFromVectorAndCrd(Vec2d &v, Crd2d &c);
+double vectorDotProduct(Vec2d &v1, Vec2d &v2);
 
 
 //computational geometry in c

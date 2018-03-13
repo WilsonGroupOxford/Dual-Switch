@@ -1,6 +1,6 @@
 IO
 ./silica    input prefix
-./test_struct output prefix
+./test output prefix
 --------------------------------------
 Network Properties
 0          periodic
@@ -13,13 +13,13 @@ Network Properties
 Simulation Parameters
 0 0         random seed range (inclusive)
 0.0001      temperature
-356     maximum proposed monte carlo moves
+1662     maximum proposed monte carlo moves
 0.001        energy convergence criteria
 10.0          alpha energy scaling factor
 --------------------------------------
 Potential Model and Geometry Optimisation
 1.42        si-si distance
-1           resolve dual overlaps
+0           resolve dual overlaps
 1.0         harmonic k
 0           locally minimise every step
 100         maximum iterations
