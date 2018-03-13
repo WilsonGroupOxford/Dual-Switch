@@ -722,6 +722,8 @@ bool Network::acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int>
     //untangle dual if introduced overlaps
 //    if(resolveDualOverlaps) findAndResolveDualOverlaps(switchTriangles);
 
+    //locally minimise
+
     cout<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
 //    consoleVector(switchTriangles);
 //    checkFidelity();
@@ -747,6 +749,9 @@ bool Network::acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int
 
     //untangle dual if introduced overlaps
     if(resolveDualOverlaps) findAndResolveDualOverlapsAperiodic(switchTriangles);
+
+    //locally minimise
+    localMinimisationAperiodic();
 
     cout<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
 //    consoleVector(switchTriangles);
@@ -857,6 +862,15 @@ void Network::findAndResolveDualOverlapsAperiodic(vector<int> &switchTriangles) 
             break;
         }
     }
+
+    return;
+}
+
+void Network::localMinimisationAperiodic() {
+    //minimse within 1 connection of triangle pair
+
+    HarmonicMinimiser minimise();
+
 
     return;
 }

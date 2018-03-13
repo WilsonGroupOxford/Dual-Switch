@@ -19,6 +19,13 @@ struct Crd2d{
     Crd2d(double xInit, double yInit);
 };
 
+//2 dimensional integer pair
+struct Pair{
+    int a, b;
+    Pair();
+    Pair(int aInit, int bInit);
+};
+
 //2 dimensional vector
 struct Vec2d{
     double x, y;

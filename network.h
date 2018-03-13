@@ -7,6 +7,7 @@
 #include "customIO.h"
 #include "node.h"
 #include "vectorManip.h"
+#include "minimise.h"
 
 using namespace std;
 
@@ -88,6 +89,7 @@ private:
     void findNodeRings(); //find rings of nodes
 //    void findAndResolveDualOverlapsPeriodic(vector<int> &switchTriangles); //untangle dual
     void findAndResolveDualOverlapsAperiodic(vector<int> &switchTriangles); //untangle dual
+    void localMinimisationAperiodic(); //minimise locally
 
     //Checking
     void checkFidelity(); //check to ensure consistency

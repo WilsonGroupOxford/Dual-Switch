@@ -12,6 +12,18 @@ Crd2d::Crd2d(double xInit, double yInit) {
     return;
 }
 
+Pair::Pair() {
+    a=0;
+    b=0;
+    return;
+}
+
+Pair::Pair(int aInit, int bInit) {
+    a=aInit;
+    b=bInit;
+    return;
+}
+
 Vec2d::Vec2d() {
     //initialise to null
     x=0.0;
