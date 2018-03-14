@@ -730,9 +730,10 @@ bool Network::acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int>
     aboavWeaireParams=trialAwParams;
 
     //untangle dual if introduced overlaps
-//    if(resolveDualOverlaps) findAndResolveDualOverlaps(switchTriangles);
+    if(resolveDualOverlaps) findAndResolveDualOverlapsPeriodic(switchTriangles);
 
     //locally minimise
+    if(localGeomOpt) localMinimisationPeriodic(switchTriangles);
 
     cout<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
 //    consoleVector(switchTriangles);
@@ -764,8 +765,6 @@ bool Network::acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int
     if(localGeomOpt) localMinimisationAperiodic(switchTriangles);
 
     cout<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
-//    consoleVector(switchTriangles);
-//    checkFidelity();
 
     if(mcEnergy<=mcConvergence) return true;
     else return false;
@@ -822,6 +821,51 @@ void Network::findNodeRings() {
     return;
 }
 
+void Network::findAndResolveDualOverlapsPeriodic(vector<int> &switchTriangles) {
+    //check if dual switch move introduces node edge overlap, and if so move nodes to resolve
+
+    //edges for overlap, edge 1 is the new edge constructed by the mc move
+    Crd2d edge1a, edge1b, edge2a, edge2b; //coordinates of edges to check intersection, all minimum images to edge1a
+    edge1a=nodes[switchTriangles[2]].coordinate;
+    edge1b=minimumImageCrd(edge1a,nodes[switchTriangles[3]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+
+    //check overlap with each side of triangle pair
+    bool overlap=false;
+    for(int n=0; n<2; ++n){
+        vector<int> cnxs=nodes[switchTriangles[n]].connections; //get connections
+        removeValueFromVectorByRef(cnxs,switchTriangles[2]); //remove link to other nodes in triangle pair
+        removeValueFromVectorByRef(cnxs,switchTriangles[3]); //remove link to other nodes in triangle pair
+        edge2a=minimumImageCrd(edge1a,nodes[switchTriangles[n]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+        for(int i=0; i<cnxs.size(); ++i){
+            edge2b=minimumImageCrd(edge1a,nodes[cnxs[i]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+            if(properIntersectionLines(edge1a,edge1b,edge2a,edge2b)){
+                overlap=true;
+                break;
+            }
+        }
+        if(overlap){//if overlap move node
+            //set up orthogonal axes with second triangle pair 2->3
+            Vec2d xAxis, yAxis;
+            yAxis=Vec2d(edge1a,edge1b);
+            yAxis.normalise();
+            xAxis=yAxis;
+            xAxis.rotate90();
+            //get vector in direction of 2->0/1, and components along axes
+            Vec2d vec=Vec2d(edge1a,edge2a);
+            double xAxisComponent=-vectorDotProduct(vec,xAxis), yAxisComponent=vectorDotProduct(vec,yAxis);
+            //reflect node 0/1 in yAxis
+            vec.x=xAxis.x*xAxisComponent+yAxis.x*yAxisComponent;
+            vec.y=xAxis.y*xAxisComponent+yAxis.y*yAxisComponent;
+            nodes[switchTriangles[n]].coordinate=crdFromVectorAndCrd(vec,edge1a);
+            applyPeriodicBoundary(nodes[switchTriangles[n]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+            cout<<"***"<<endl;
+            break;
+        }
+    }
+
+    return;
+}
+
 void Network::findAndResolveDualOverlapsAperiodic(vector<int> &switchTriangles) {
     //check if dual switch move introduces node edge overlap, and if so move nodes to resolve
 
@@ -872,6 +916,94 @@ void Network::findAndResolveDualOverlapsAperiodic(vector<int> &switchTriangles) 
             break;
         }
     }
+
+    return;
+}
+
+void Network::localMinimisationPeriodic(vector<int> &switchTriangles) {
+    //minimse within 1 connection of triangle pair
+
+    //get next two topological shells
+    vector<int> minimisationRegion=switchTriangles;
+    vector<int> nextShell=nextTopologicalShell(switchTriangles);
+    vector<int> fixedRegion=nextTopologicalShell(nextShell,switchTriangles);
+
+    //minimisation region contains all shells, fixed region just outermost shell
+    addValuesToVectorByRef(minimisationRegion,nextShell);
+    addValuesToVectorByRef(minimisationRegion,fixedRegion);
+
+    //set up global maps
+    int nMinNodes=minimisationRegion.size();
+    map<int,int> globalToLocalMap;
+    vector<Crd2d> localCoordinates(nMinNodes);
+    for(int i=0; i<nMinNodes; ++i){
+        globalToLocalMap[minimisationRegion[i]]=i;
+        localCoordinates[i]=nodes[minimisationRegion[i]].coordinate;
+    }
+
+    //make unique list of harmonic pairs
+    vector<Pair> localHarmonicPairs;
+    vector<double> localHarmonicR0;
+    localHarmonicPairs.clear();
+    localHarmonicR0.clear();
+    int globalA, globalB, indexA, indexB;
+    for(int i=0; i<nMinNodes; ++i){
+        globalA=minimisationRegion[i];
+        for(int j=0; j<nodes[globalA].size; ++j){
+            globalB=nodes[globalA].connections[j];
+            if(globalToLocalMap.count(globalB)) {//only include if in minimisation region
+                if(globalA<globalB){//prevent double counting
+                    localHarmonicPairs.push_back(Pair(globalToLocalMap[globalA],globalToLocalMap[globalB]));
+                    indexA=nodes[globalA].sizeIndex;
+                    indexB=nodes[globalB].sizeIndex;
+                    localHarmonicR0.push_back(harmonicR0Matrix[indexA][indexB]);
+                }
+            }
+        }
+    }
+
+    //get list of line intersections to prevent overlapping
+    int ringSize;
+    vector<int> ring;
+    vector<DoublePair> localLinePairs;
+    DoublePair linePair;
+    int lineA, lineB, lineC, lineD;
+    map<string,int> pairIDMap;
+    string pairID;
+    for(int i=0; i<nMinNodes-fixedRegion.size(); ++i){//find rings around each node not in fixed region
+        ringSize=nodes[minimisationRegion[i]].size;
+        ring=findNodeRing(minimisationRegion[i]);
+        ring.push_back(ring[0]); //make ring periodic
+        lineA=globalToLocalMap[minimisationRegion[i]];
+        for(int j=0; j<ringSize; ++j){
+            lineB=globalToLocalMap[ring[j]];
+            for(int k=0; k<ringSize; ++k){
+                lineC=globalToLocalMap[ring[k]];
+                lineD=globalToLocalMap[ring[k+1]];
+                if(lineC!=lineB && lineD!=lineB){//neglect lines containing node B
+                    linePair=DoublePair(lineA,lineB,lineC,lineD);
+                    //ensure each pair is only used once
+                    linePair.sort();
+                    pairID=linePair.getID();
+                    if(!pairIDMap.count(pairID)){
+                        localLinePairs.push_back(linePair);
+                        pairIDMap[pairID]=1;
+                    }
+                }
+            }
+        }
+    }
+
+    //convert fixed region to local
+    for(int i=0; i<fixedRegion.size(); ++i) fixedRegion[i]=globalToLocalMap[fixedRegion[i]];
+
+    //minimise
+    HarmonicMinimiser localMinimiser(localCoordinates,localHarmonicPairs,fixedRegion,localHarmonicR0,harmonicK,localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt,localLinePairs);
+    localMinimiser.steepestDescent(periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+    localCoordinates=localMinimiser.getMinimisedCoordinates();
+
+    //update global coordinates
+    for(int i=0; i<nMinNodes; ++i) nodes[minimisationRegion[i]].coordinate=localCoordinates[i];
 
     return;
 }

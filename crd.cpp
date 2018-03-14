@@ -154,6 +154,21 @@ double vectorDotProduct(Vec2d &v1, Vec2d &v2){
     return v1.x*v2.x+v1.y*v2.y;
 }
 
+Crd2d minimumImageCrd(Crd2d &c1, Crd2d &c2, double &pbcX, double &pbcY, double &rPbcX, double &rPbcY){
+    Crd2d c3((c2.x-c1.x),(c2.y-c1.y));
+    c3.x=c3.x-pbcX*round(c3.x*rPbcX);
+    c3.y=c3.y-pbcY*round(c3.y*rPbcY);
+    c3.x=c1.x+c3.x;
+    c3.y=c1.y+c3.y;
+    return c3;
+}
+
+void applyPeriodicBoundary(Crd2d &c1, double &pbcX, double &pbcY, double &rPbcX, double &rPbcY){
+    c1.x=c1.x-pbcX*round(c1.x*rPbcX);
+    c1.y=c1.y-pbcY*round(c1.y*rPbcY);
+    return;
+}
+
 //##### IMPLEMENTED USING COMPUTATIONAL GEOMETRY IN C #######
 double signedAreaSqTriangle(Crd2d &a, Crd2d &b, Crd2d &c){
     //returns square of the signed area of a triangle defined by three points

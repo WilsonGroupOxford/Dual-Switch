@@ -59,6 +59,8 @@ double crdDistance(Crd2d &c1, Crd2d &c2);
 Crd2d recentreCrdByCrd(Crd2d &c1, Crd2d &c2);
 Crd2d recentreCrdByCrd(Crd2d &c1, Crd2d &c2, double &x, double &y, double &rX, double &rY);
 Crd2d crdFromVectorAndCrd(Vec2d &v, Crd2d &c);
+Crd2d minimumImageCrd(Crd2d &c1, Crd2d &c2, double &pbcX, double &pbcY, double &rPbcX, double &rPbcY);
+void applyPeriodicBoundary(Crd2d &c1, double &pbcX, double &pbcY, double &rPbcX, double &rPbcY);
 double vectorDotProduct(Vec2d &v1, Vec2d &v2);
 
 
