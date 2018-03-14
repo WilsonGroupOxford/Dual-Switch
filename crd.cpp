@@ -24,6 +24,51 @@ Pair::Pair(int aInit, int bInit) {
     return;
 }
 
+DoublePair::DoublePair() {
+    a=0;
+    b=0;
+    c=0;
+    d=0;
+    return;
+}
+
+DoublePair::DoublePair(int aInit, int bInit, int cInit, int dInit) {
+    a=aInit;
+    b=bInit;
+    c=cInit;
+    d=dInit;
+    return;
+}
+
+void DoublePair::sort() {
+    int e,f;
+    if(a>b){
+        e=a;
+        a=b;
+        b=e;
+    }
+    if(c>d){
+        f=c;
+        c=d;
+        d=f;
+    }
+    if(a>c){
+        e=a;
+        f=b;
+        a=c;
+        b=d;
+        c=e;
+        d=f;
+    }
+    return;
+}
+
+string DoublePair::getID() {
+    return "#"+to_string(a)+"#"+to_string(b)+"#"+to_string(c)+"#"+to_string(d);
+}
+
+
+
 Vec2d::Vec2d() {
     //initialise to null
     x=0.0;

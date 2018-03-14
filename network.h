@@ -76,6 +76,7 @@ private:
     double metropolisRandomNum(); //random number for mc metropolis condition
 
     //Monte carlo
+    int testCounter;
     void monteCarlo(); //main monte carlo process
     vector<int> pickRandomTrianglePairPeriodic(); //nodes to dual switch
     vector<int> pickRandomTrianglePairAperiodic(); //nodes to dual switch
@@ -92,6 +93,8 @@ private:
     void localMinimisationAperiodic(vector<int> &switchTriangles); //minimise locally
     vector<int> nextTopologicalShell(vector<int> &currentShell); //find two-sided topological shell
     vector<int> nextTopologicalShell(vector<int> &currentShell, vector<int> &prevShell); //find two-sided topological shell
+    vector<int> findNodeRing(int n); //find ring around a central node
+
 
     //Checking
     void checkFidelity(); //check to ensure consistency

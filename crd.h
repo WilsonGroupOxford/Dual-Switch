@@ -26,6 +26,15 @@ struct Pair{
     Pair(int aInit, int bInit);
 };
 
+//2 dimensional integer pair
+struct DoublePair{
+    int a, b, c, d;
+    DoublePair();
+    DoublePair(int aInit, int bInit, int cInit, int dInit);
+    void sort();
+    string getID();
+};
+
 //2 dimensional vector
 struct Vec2d{
     double x, y;

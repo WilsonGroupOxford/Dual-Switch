@@ -8,13 +8,14 @@
 class HarmonicMinimiser {
 private:
     //potential model
-    int nHarmonicPairs, nFixedPnts;
+    int nHarmonicPairs, nFixedPnts, nIntersectionPairs;
     vector<int> fixedPoints; //points fixed in place
     vector<Pair> harmonicPairs; //points linked by harmonic pairs
     vector<double> harmonicR0; //minimum in harmonic potential
     double harmonicK; //force constant for harmonic potential
     double convergenceCriteria, lineSearchIncrement;
     int maxIterations;
+    vector<DoublePair> intersectionPairs; //lines to check for intersection
 
     //calculation variables
     int nPnts; //number of points
@@ -41,7 +42,7 @@ private:
 public:
     HarmonicMinimiser(); //default constructor invokes tests
     HarmonicMinimiser(vector<Crd2d> crds, vector<Pair> harmPairs, vector<int> fixedPnts,
-                      vector<double> harmR0, double harmK, double cc, double inc, int maxIt);
+                      vector<double> harmR0, double harmK, double cc, double inc, int maxIt, vector<DoublePair> lineInt);
     void steepestDescent(); //steepest descent minimisation
     vector<Crd2d> getMinimisedCoordinates(); //return minimised coordinates
 };

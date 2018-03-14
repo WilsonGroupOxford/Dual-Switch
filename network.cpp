@@ -446,6 +446,7 @@ void Network::monteCarlo() {
             calculateTrialPAperiodic(switchTriangles, trialPVector, trialPMatrix);
             trialAwParameters=calculateAboavWeaireFit(trialPVector,trialPMatrix);
             trialMcEnergy=mcEnergyFunctional(trialAwParameters,trialPVector);
+            testCounter=move;
             acceptTrialMove=evaluateMetropolisCondition(trialMcEnergy,mcEnergy);
             if(acceptTrialMove) mcTargetReached=acceptDualSwitchAperiodic(switchTriangles,trialPVector,trialPMatrix,trialMcEnergy,trialAwParameters);
             if(mcTargetReached){
@@ -836,27 +837,27 @@ void Network::findAndResolveDualOverlapsAperiodic(vector<int> &switchTriangles) 
         }
         if(overlap){//if overlap move node
             //set up orthogonal axes with second triangle pair 2->3
-//            Vec2d xAxis, yAxis;
-//            yAxis=Vec2d(edge1a,edge1b);
-//            yAxis.normalise();
-//            xAxis=yAxis;
-//            xAxis.rotate90();
-//            //get vector in direction of 2->0/1, and components along axes
-//            Vec2d vec=Vec2d(edge1a,edge2a);
-//            double xAxisComponent=-vectorDotProduct(vec,xAxis), yAxisComponent=vectorDotProduct(vec,yAxis);
-//            //reflect node 0/1 in yAxis
-//            vec.x=xAxis.x*xAxisComponent+yAxis.x*yAxisComponent;
-//            vec.y=xAxis.y*xAxisComponent+yAxis.y*yAxisComponent;
-//            nodes[switchTriangles[n]].coordinate=crdFromVectorAndCrd(vec,edge1a);
-            Vec2d moveDirection, direction;
-            for(int i=0; i<cnxs.size(); ++i){
-                direction=Vec2d(edge2a,nodes[cnxs[i]].coordinate);
-                direction.normalise();
-                moveDirection.addVector(direction);
-            }
-            moveDirection.normalise();
-            nodes[switchTriangles[n]].coordinate.x=nodes[switchTriangles[n]].coordinate.x+moveDirection.x;
-            nodes[switchTriangles[n]].coordinate.y=nodes[switchTriangles[n]].coordinate.y+moveDirection.y;
+            Vec2d xAxis, yAxis;
+            yAxis=Vec2d(edge1a,edge1b);
+            yAxis.normalise();
+            xAxis=yAxis;
+            xAxis.rotate90();
+            //get vector in direction of 2->0/1, and components along axes
+            Vec2d vec=Vec2d(edge1a,edge2a);
+            double xAxisComponent=-vectorDotProduct(vec,xAxis), yAxisComponent=vectorDotProduct(vec,yAxis);
+            //reflect node 0/1 in yAxis
+            vec.x=xAxis.x*xAxisComponent+yAxis.x*yAxisComponent;
+            vec.y=xAxis.y*xAxisComponent+yAxis.y*yAxisComponent;
+            nodes[switchTriangles[n]].coordinate=crdFromVectorAndCrd(vec,edge1a);
+//            Vec2d moveDirection, direction;
+//            for(int i=0; i<cnxs.size(); ++i){
+//                direction=Vec2d(edge2a,nodes[cnxs[i]].coordinate);
+//                direction.normalise();
+//                moveDirection.addVector(direction);
+//            }
+//            moveDirection.normalise();
+//            nodes[switchTriangles[n]].coordinate.x=nodes[switchTriangles[n]].coordinate.x+moveDirection.x;
+//            nodes[switchTriangles[n]].coordinate.y=nodes[switchTriangles[n]].coordinate.y+moveDirection.y;
 
             cout<<"***"<<endl;
             break;
@@ -910,11 +911,50 @@ void Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
         }
     }
 
+    //get list of line intersections to prevent overlapping
+    int ringSize;
+    vector<int> ring;
+    vector<DoublePair> localLinePairs;
+    DoublePair linePair;
+    int lineA, lineB, lineC, lineD;
+    map<string,int> pairIDMap;
+    string pairID;
+    for(int i=0; i<nMinNodes-fixedRegion.size(); ++i){//find rings around each node not in fixed region
+        if(!nodes[minimisationRegion[i]].edge){//not on edge
+            ringSize=nodes[minimisationRegion[i]].size;
+            ring=findNodeRing(minimisationRegion[i]);
+            ring.push_back(ring[0]); //make ring periodic
+            lineA=globalToLocalMap[minimisationRegion[i]];
+//            lineA=minimisationRegion[i];
+            for(int j=0; j<ringSize; ++j){
+                lineB=globalToLocalMap[ring[j]];
+//                lineB=ring[j];
+                for(int k=0; k<ringSize; ++k){
+                    lineC=globalToLocalMap[ring[k]];
+                    lineD=globalToLocalMap[ring[k+1]];
+//                    lineC=ring[k];
+//                    lineD=ring[k+1];
+                    if(lineC!=lineB && lineD!=lineB){//neglect lines containing node B
+                        linePair=DoublePair(lineA,lineB,lineC,lineD);
+                        //ensure each pair is only used once
+                        linePair.sort();
+                        pairID=linePair.getID();
+                        if(!pairIDMap.count(pairID)){
+                            localLinePairs.push_back(linePair);
+                            pairIDMap[pairID]=1;
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
     //convert fixed region to local
     for(int i=0; i<fixedRegion.size(); ++i) fixedRegion[i]=globalToLocalMap[fixedRegion[i]];
 
     //minimise
-    HarmonicMinimiser localMinimiser(localCoordinates,localHarmonicPairs,fixedRegion,localHarmonicR0,1.0,0.1,0.01,100);
+    HarmonicMinimiser localMinimiser(localCoordinates,localHarmonicPairs,fixedRegion,localHarmonicR0,1.0,0.1,0.01,100,localLinePairs);
     localMinimiser.steepestDescent();
     localCoordinates=localMinimiser.getMinimisedCoordinates();
 
@@ -922,6 +962,35 @@ void Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
     for(int i=0; i<nMinNodes; ++i) nodes[minimisationRegion[i]].coordinate=localCoordinates[i];
 
     return;
+}
+
+vector<int> Network::findNodeRing(int n){
+    //find ring around a central node
+
+    int nSize=nodes[n].size;
+    vector<int> ring(nSize); //ring around central node
+    vector<int> centralCnxs=nodes[n].connections;
+    vector<int> outerCnxs;
+    ring[0]=centralCnxs[0]; //pick first connection as starting point
+    outerCnxs=nodes[ring[0]].connections;
+    for(int j=0; j<outerCnxs.size(); ++j){//find second connection in ring
+        if(checkVectorForValue(centralCnxs,outerCnxs[j])){
+            ring[1]=outerCnxs[j];
+            break;
+        };
+    }
+    for(int j=2; j<nSize; ++j){//find remaining connections
+        outerCnxs=nodes[ring[j-1]].connections;
+        removeValueFromVectorByRef(outerCnxs,ring[j-2]); //remove previous node in chain
+        for(int k=0; k<outerCnxs.size(); ++k){
+            if(checkVectorForValue(centralCnxs,outerCnxs[k])) {
+                ring[j] = outerCnxs[k];
+                break;
+            }
+        }
+    }
+
+    return ring;
 }
 
 vector<int> Network::nextTopologicalShell(vector<int> &currentShell) {

@@ -7,7 +7,7 @@ HarmonicMinimiser::HarmonicMinimiser() {
 }
 
 HarmonicMinimiser::HarmonicMinimiser(vector<Crd2d> crds, vector<Pair> harmPairs, vector<int> fixedPnts,
-                                     vector<double> harmR0, double harmK, double cc, double inc, int maxIt) {
+                                     vector<double> harmR0, double harmK, double cc, double inc, int maxIt, vector<DoublePair> lineInt) {
     coordinates=crds;
     harmonicPairs=harmPairs;
     fixedPoints=fixedPnts;
@@ -16,9 +16,11 @@ HarmonicMinimiser::HarmonicMinimiser(vector<Crd2d> crds, vector<Pair> harmPairs,
     convergenceCriteria=cc;
     lineSearchIncrement=inc;
     maxIterations=maxIt;
+    intersectionPairs=lineInt;
     nPnts=coordinates.size();
     nHarmonicPairs=harmonicPairs.size();
     nFixedPnts=fixedPnts.size();
+    nIntersectionPairs=intersectionPairs.size();
     zeroForce=Crd2d();
     zeroForces.resize(nPnts,Crd2d());
     return;
@@ -65,6 +67,12 @@ void HarmonicMinimiser::calculateForces() {
 double HarmonicMinimiser::calculateEnergy() {
     //calculate energy of harmonic interactions
     double energy=0.0;
+    bool intersection=false;
+    for(int i=0; i<nIntersectionPairs; ++i){
+        intersection=properIntersectionLines(coordinates[intersectionPairs[i].a],coordinates[intersectionPairs[i].b],
+                                coordinates[intersectionPairs[i].c], coordinates[intersectionPairs[i].d]);
+        if(intersection) return numeric_limits<double>::infinity();
+    }
     for(int i=0; i<nHarmonicPairs; ++i){
         energy=energy+harmonicEnergy(coordinates[harmonicPairs[i].a], coordinates[harmonicPairs[i].b], harmonicR0[i], harmonicK);
     }
