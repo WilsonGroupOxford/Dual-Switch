@@ -27,7 +27,7 @@ private:
     //Potential Model and Geometry Optimisation
     bool localGeomOpt, globalGeomOpt, resolveOverlaps; //local geometry optimisation every step, global at end, resolve edge overlaps in dual
     int localGeomOptMaxIt, globalGeomOptMaxIt; //iterations for local/global optimisation
-    double atomDistance, harmonicK, localGeomOptConv, globalGeomOptConv; //between atoms in network, force constant, local/global force convergence criteria
+    double atomDistance, harmonicK, localGeomOptConv, globalGeomOptConv, lineSearchStep; //between atoms in network, force constant, local/global force convergence criteria
 
     //Analysis
     bool periodicVis, spatialRdf, topoRdf; //periodic visualisation, spatial partial rdfs, topological rdfs

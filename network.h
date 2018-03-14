@@ -27,7 +27,11 @@ private:
 
     //Potential model
     bool resolveDualOverlaps; //whether to untangle dual after each mc move accepted
-    double atomicSeparation; //ideal distance between atoms
+    bool localGeomOpt, globalGeomOpt; //geometry optimisation local after each accepted step of global at end
+    int localGeomOptMaxIt, globalGeomOptMaxIt; //maximum number of steepest descent iterations
+    double localGeomOptCC, globalGeomOptCC; //convergence criteria
+    double atomicSeparation, geomOptLineSearchInc; //ideal distance between atoms, line search increment
+    double harmonicK; //force constant
 
     //Monte carlo dual switching properties
     int mcSeed, mcMaxMoves; //random seed, maximum proposed moves
@@ -107,7 +111,8 @@ private:
 public:
     void setIO(string in, string out); //set input/output properties
     void setProperties(bool per, bool readIn, vector<int> latDim, vector<int> ringLim, double alpha, vector<double> p); //set initial and target network properties
-    void setPotential(double sep, bool overlap); //set parameters for potential model
+    void setPotential(double sep, double k, bool local, int localMaxIt, double localCC,
+                      bool global, int globalMaxIt, double globalCC, double lineInc, bool overlap); //set parameters for potential model
     void setMonteCarlo(int seed, double t, int moves, double conv, double asf); //set monte carlo limits
     void setAnalysis(bool perVis); //set analysis tools
     bool getConsistency(); //get whether network constructed is consistent

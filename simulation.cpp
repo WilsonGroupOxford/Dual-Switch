@@ -55,6 +55,7 @@ void Simulation::readInputFile() {
     readFileValue(mainInputFile,localGeomOpt);
     readFileValue(mainInputFile,localGeomOptMaxIt);
     readFileValue(mainInputFile,localGeomOptConv);
+    readFileValue(mainInputFile,lineSearchStep);
     readFileValue(mainInputFile,globalGeomOpt);
     readFileValue(mainInputFile,globalGeomOptMaxIt);
     readFileValue(mainInputFile,globalGeomOptConv);
@@ -100,7 +101,8 @@ void Simulation::initialiseNetwork(Network &network, int seed) {
 
     network.setIO(inPrefix,outPrefix+"_"+to_string(seed));
     network.setProperties(periodic,load,latticeDimensions,ringSizeLimits,alpha,pVector);
-    network.setPotential(atomDistance, resolveOverlaps);
+    network.setPotential(atomDistance, harmonicK, localGeomOpt, localGeomOptMaxIt, localGeomOptConv,
+                         globalGeomOpt, globalGeomOptMaxIt, globalGeomOptConv, lineSearchStep, resolveOverlaps);
     network.setMonteCarlo(seed,temperature,maxMoves,propConvergence,alphaEnergyScaling);
     network.setAnalysis(periodicVis);
 

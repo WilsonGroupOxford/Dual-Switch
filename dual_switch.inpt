@@ -21,9 +21,10 @@ Potential Model and Geometry Optimisation
 1.42        si-si distance
 1           resolve dual overlaps
 1.0         harmonic k
-0           locally minimise every step
+1           locally minimise every step
 100         maximum iterations
 0.1         convergence criteria
+0.01        line search step size
 0           globally minimise after simulation end
 1000       maximum iterations
 0.1         convergence criteria

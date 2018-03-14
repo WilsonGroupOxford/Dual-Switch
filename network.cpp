@@ -20,9 +20,18 @@ void Network::setProperties(bool per, bool readIn, vector<int> latDim, vector<in
     return;
 }
 
-void Network::setPotential(double sep, bool overlap) {
+void Network::setPotential(double sep, double k, bool local, int localMaxIt, double localCC, bool global, int globalMaxIt,
+                           double globalCC, double lineInc, bool overlap) {
     //set potential model parameters
     atomicSeparation=sep;
+    harmonicK=k;
+    localGeomOpt=local;
+    localGeomOptMaxIt=localMaxIt;
+    localGeomOptCC=localCC;
+    globalGeomOpt=global;
+    globalGeomOptMaxIt=globalMaxIt;
+    globalGeomOptCC=globalCC;
+    geomOptLineSearchInc=lineInc;
     resolveDualOverlaps=overlap;
     return;
 }
@@ -752,7 +761,7 @@ bool Network::acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int
     if(resolveDualOverlaps) findAndResolveDualOverlapsAperiodic(switchTriangles);
 
     //locally minimise
-    localMinimisationAperiodic(switchTriangles);
+    if(localGeomOpt) localMinimisationAperiodic(switchTriangles);
 
     cout<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
 //    consoleVector(switchTriangles);
@@ -925,15 +934,11 @@ void Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
             ring=findNodeRing(minimisationRegion[i]);
             ring.push_back(ring[0]); //make ring periodic
             lineA=globalToLocalMap[minimisationRegion[i]];
-//            lineA=minimisationRegion[i];
             for(int j=0; j<ringSize; ++j){
                 lineB=globalToLocalMap[ring[j]];
-//                lineB=ring[j];
                 for(int k=0; k<ringSize; ++k){
                     lineC=globalToLocalMap[ring[k]];
                     lineD=globalToLocalMap[ring[k+1]];
-//                    lineC=ring[k];
-//                    lineD=ring[k+1];
                     if(lineC!=lineB && lineD!=lineB){//neglect lines containing node B
                         linePair=DoublePair(lineA,lineB,lineC,lineD);
                         //ensure each pair is only used once
@@ -954,7 +959,7 @@ void Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
     for(int i=0; i<fixedRegion.size(); ++i) fixedRegion[i]=globalToLocalMap[fixedRegion[i]];
 
     //minimise
-    HarmonicMinimiser localMinimiser(localCoordinates,localHarmonicPairs,fixedRegion,localHarmonicR0,1.0,0.1,0.01,100,localLinePairs);
+    HarmonicMinimiser localMinimiser(localCoordinates,localHarmonicPairs,fixedRegion,localHarmonicR0,harmonicK,localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt,localLinePairs);
     localMinimiser.steepestDescent();
     localCoordinates=localMinimiser.getMinimisedCoordinates();
 
