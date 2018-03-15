@@ -21,7 +21,7 @@ void Network::setProperties(bool per, bool readIn, vector<int> latDim, vector<in
 }
 
 void Network::setPotential(double sep, double k, bool local, int localMaxIt, double localCC, bool global, int globalMaxIt,
-                           double globalCC, double lineInc, bool overlap) {
+                           double globalCC, double lineInc) {
     //set potential model parameters
     atomicSeparation=sep;
     harmonicK=k;
@@ -32,7 +32,6 @@ void Network::setPotential(double sep, double k, bool local, int localMaxIt, dou
     globalGeomOptMaxIt=globalMaxIt;
     globalGeomOptCC=globalCC;
     geomOptLineSearchInc=lineInc;
-    resolveDualOverlaps=overlap;
     return;
 }
 
@@ -447,6 +446,7 @@ void Network::monteCarlo() {
                 break;
             }
         }
+//        if(globalGeomOpt) globalMinimisationPeriodic(); //globally geometry optimise
     }
     else{
         for(int move=0; move<mcMaxMoves; ++move){
@@ -465,6 +465,8 @@ void Network::monteCarlo() {
             }
         }
     }
+
+
     return;
 }
 
@@ -724,14 +726,24 @@ bool Network::acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int>
     nodes[switchTriangles[2]].makeConnection(switchTriangles[3]);
     nodes[switchTriangles[3]].makeConnection(switchTriangles[2]);
 
+    //locally minimise
+    if(localGeomOpt){
+        int optimisationStatus=localMinimisationPeriodic(switchTriangles);
+        //if failed reverse make/break and don't update vectors
+        if(optimisationStatus==0){
+            nodes[switchTriangles[0]].makeConnection(switchTriangles[1]);
+            nodes[switchTriangles[1]].makeConnection(switchTriangles[0]);
+            nodes[switchTriangles[2]].breakConnection(switchTriangles[3]);
+            nodes[switchTriangles[3]].breakConnection(switchTriangles[2]);
+            return false;
+        }
+    }
+
     //update vectors
     pVector=trialPVec;
     pMatrix=trialPMat;
     mcEnergy=trialMcEnergy;
     aboavWeaireParams=trialAwParams;
-
-    //locally minimise
-    if(localGeomOpt) localMinimisationPeriodic(switchTriangles);
 
     cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
 
@@ -748,17 +760,25 @@ bool Network::acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int
     nodes[switchTriangles[2]].makeConnection(switchTriangles[3]);
     nodes[switchTriangles[3]].makeConnection(switchTriangles[2]);
 
+    //locally minimise
+    if(localGeomOpt){
+        int optimisationStatus=localMinimisationAperiodic(switchTriangles);
+        //if failed reverse make/break and don't update vectors
+        if(optimisationStatus==0){
+            nodes[switchTriangles[0]].makeConnection(switchTriangles[1]);
+            nodes[switchTriangles[1]].makeConnection(switchTriangles[0]);
+            nodes[switchTriangles[2]].breakConnection(switchTriangles[3]);
+            nodes[switchTriangles[3]].breakConnection(switchTriangles[2]);
+            return false;
+        }
+    }
+
     //update vectors
     pVector=trialPVec;
     pMatrix=trialPMat;
     mcEnergy=trialMcEnergy;
     aboavWeaireParams=trialAwParams;
 
-    //locally minimise
-//    if(testCounter==19938) {
-//        consoleVector(switchTriangles);
-//    }
-    if(localGeomOpt) localMinimisationAperiodic(switchTriangles);
     cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
     if(mcEnergy<=mcConvergence) return true;
     else return false;
@@ -815,7 +835,7 @@ void Network::findNodeRings() {
     return;
 }
 
-void Network::localMinimisationPeriodic(vector<int> &switchTriangles) {
+int Network::localMinimisationPeriodic(vector<int> &switchTriangles) {
     //minimse within 1 connection of triangle pair
 
     //get next two topological shells
@@ -894,16 +914,16 @@ void Network::localMinimisationPeriodic(vector<int> &switchTriangles) {
 
     //minimise
     HarmonicMinimiser localMinimiser(localCoordinates,localHarmonicPairs,fixedRegion,localHarmonicR0,harmonicK,localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt,localLinePairs);
-    localMinimiser.steepestDescent(periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+    int status=localMinimiser.steepestDescent(periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
     localCoordinates=localMinimiser.getMinimisedCoordinates();
 
     //update global coordinates
     for(int i=0; i<nMinNodes; ++i) nodes[minimisationRegion[i]].coordinate=localCoordinates[i];
 
-    return;
+    return status;
 }
 
-void Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
+int Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
     //minimse within 1 connection of triangle pair
 
     //get next two topological shells
@@ -987,13 +1007,13 @@ void Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
 
     //minimise
     HarmonicMinimiser localMinimiser(localCoordinates,localHarmonicPairs,fixedRegion,localHarmonicR0,harmonicK,localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt,localLinePairs);
-    localMinimiser.steepestDescent();
+    int status=localMinimiser.steepestDescent();
     localCoordinates=localMinimiser.getMinimisedCoordinates();
 
     //update global coordinates
     for(int i=0; i<nMinNodes; ++i) nodes[minimisationRegion[i]].coordinate=localCoordinates[i];
 
-    return;
+    return status;
 }
 
 vector<int> Network::findNodeRing(int n){

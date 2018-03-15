@@ -28,13 +28,10 @@ HarmonicMinimiser::HarmonicMinimiser(vector<Crd2d> crds, vector<Pair> harmPairs,
 
 //###### Steepest descent without PBCs ######
 
-void HarmonicMinimiser::steepestDescent() {
+int HarmonicMinimiser::steepestDescent() {
     //perform steepest descent until energy converged or hits iteration limit
 
-    if(!resolveInitialIntersections()) {
-        cout<<"Could not resolve initial intersections"<<endl;
-        return;
-    }
+    if(!resolveInitialIntersections()) return 0;
 
     iterations=0; //intialise iteration counter
     previousEnergy=numeric_limits<double>::infinity(); //set initial energy to infinite
@@ -48,7 +45,7 @@ void HarmonicMinimiser::steepestDescent() {
 //        cout<<iterations<<" "<<currentEnergy<<endl;
         if(complete) break;
     }
-    return;
+    return 1;
 }
 
 void HarmonicMinimiser::calculateForces() {
@@ -366,7 +363,7 @@ bool HarmonicMinimiser::moveIntersectingPoints(vector<int> &uniquePoints, Pair &
 
 //###### Steepest Descent With PBCs ######
 
-void HarmonicMinimiser::steepestDescent(double x, double y, double rx, double ry) {
+int HarmonicMinimiser::steepestDescent(double x, double y, double rx, double ry) {
     //perform steepest descent until energy converged or hits iteration limit, overloaded for periodic boundary conditions
 
     //setup periodic boundary variables
@@ -374,10 +371,7 @@ void HarmonicMinimiser::steepestDescent(double x, double y, double rx, double ry
     pbcY=y;
     pbcRX=rx;
     pbcRY=ry;
-    if(!resolveInitialIntersectionsPBC()) {
-        cout<<"Could not resolve initial intersections"<<endl;
-        return;
-    }
+    if(!resolveInitialIntersectionsPBC()) return 0;
     iterations=0; //intialise iteration counter
     previousEnergy=numeric_limits<double>::infinity(); //set initial energy to infinite
     deltaEZeroCount=0; //initialise no energy change counter
@@ -392,7 +386,7 @@ void HarmonicMinimiser::steepestDescent(double x, double y, double rx, double ry
     }
     wrapAroundCoordinates(); //apply periodic bcs to coordiates
 
-    return;
+    return 1;
 }
 
 void HarmonicMinimiser::calculateForcesPBC() {
@@ -499,7 +493,7 @@ bool HarmonicMinimiser::resolveInitialIntersectionsPBC() {
 
     bool resolved=!checkIntersectionsPBC();
     if(resolved) return true; //return if no intersections
-    cout<<"**"<<endl;
+
     //get intersecting lines
     vector<DoublePair> intersectingLines=getIntersectionsPBC();
     int nIntersectingLines=intersectingLines.size();

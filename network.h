@@ -26,7 +26,6 @@ private:
     vector<double> targetPVector; //target ring statistics
 
     //Potential model
-    bool resolveDualOverlaps; //whether to untangle dual after each mc move accepted
     bool localGeomOpt, globalGeomOpt; //geometry optimisation local after each accepted step of global at end
     int localGeomOptMaxIt, globalGeomOptMaxIt; //maximum number of steepest descent iterations
     double localGeomOptCC, globalGeomOptCC; //convergence criteria
@@ -92,8 +91,8 @@ private:
     bool acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int> &trialPVec, vector< vector<int> > &trialPMat, double &trialMcEnergy, vector<double> &trialAwParams); //enact dual switch and update trial->current variables
     bool acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int> &trialPVec, vector< vector<int> > &trialPMat, double &trialMcEnergy, vector<double> &trialAwParams); //enact dual switch and update trial->current variables
     void findNodeRings(); //find rings of nodes
-    void localMinimisationPeriodic(vector<int> &switchTriangles); //minimise locally
-    void localMinimisationAperiodic(vector<int> &switchTriangles); //minimise locally
+    int localMinimisationPeriodic(vector<int> &switchTriangles); //minimise locally
+    int localMinimisationAperiodic(vector<int> &switchTriangles); //minimise locally
     vector<int> nextTopologicalShell(vector<int> &currentShell); //find two-sided topological shell
     vector<int> nextTopologicalShell(vector<int> &currentShell, vector<int> &prevShell); //find two-sided topological shell
     vector<int> findNodeRing(int n); //find ring around a central node
@@ -111,7 +110,7 @@ public:
     void setIO(string in, string out); //set input/output properties
     void setProperties(bool per, bool readIn, vector<int> latDim, vector<int> ringLim, double alpha, vector<double> p); //set initial and target network properties
     void setPotential(double sep, double k, bool local, int localMaxIt, double localCC,
-                      bool global, int globalMaxIt, double globalCC, double lineInc, bool overlap); //set parameters for potential model
+                      bool global, int globalMaxIt, double globalCC, double lineInc); //set parameters for potential model
     void setMonteCarlo(int seed, double t, int moves, double conv, double asf); //set monte carlo limits
     void setAnalysis(bool perVis); //set analysis tools
     bool getConsistency(); //get whether network constructed is consistent

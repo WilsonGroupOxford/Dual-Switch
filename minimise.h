@@ -73,8 +73,8 @@ public:
     HarmonicMinimiser(); //default constructor invokes tests
     HarmonicMinimiser(vector<Crd2d> crds, vector<Pair> harmPairs, vector<int> fixedPnts,
                       vector<double> harmR0, double harmK, double cc, double inc, int maxIt, vector<DoublePair> lineInt);
-    void steepestDescent(); //steepest descent minimisation
-    void steepestDescent(double x, double y, double rx, double ry); //steepest descent minimisation with periodic boundary conditions
+    int steepestDescent(); //steepest descent minimisation
+    int steepestDescent(double x, double y, double rx, double ry); //steepest descent minimisation with periodic boundary conditions
     vector<Crd2d> getMinimisedCoordinates(); //return minimised coordinates
 };
 
