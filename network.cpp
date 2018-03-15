@@ -1306,6 +1306,40 @@ void Network::checkGeometry() {
     return;
 }
 
+//###### Analysis main ######
+
+void Network::analyse(ofstream &logfile) {
+    //control analysis of generated network
+
+    //unoptional analysis
+    analyseRingStatistics();
+
+
+    return;
+}
+
+//###### Analysis individual functions ######
+
+void Network::analyseRingStatistics() {
+    //find ring statistics from p vector and normalise p matrix
+
+    //ring statistics of entire network
+    ringStatistics.clear();
+    ringStatistics.resize(nRingSizes);
+    double normalisation=1.0/accumulate(pVector.begin(), pVector.end(), 0.0);
+    for(int i=0; i<nRingSizes; ++i) ringStatistics[i]=normalisation*pVector[i];
+
+    //normalised p matrix (pi)
+    piMatrix.clear();
+    piMatrix.resize(nRingSizes,(vector<double> (nRingSizes)));
+    for(int i=0; i<nRingSizes; ++i){
+        normalisation=1.0/accumulate(pMatrix[i].begin(), pMatrix[i].end(), 0.0);
+        for(int j=0; j<nRingSizes; ++j) piMatrix[i][j]=pMatrix[i][j]*normalisation;
+    }
+
+    return;
+}
+
 //###### Write out ######
 
 void Network::write() {
@@ -1314,6 +1348,8 @@ void Network::write() {
     writeDual();
 
     if(periodicVisualisation) writePeriodicNetwork();
+
+    writeRingStatistics();
 
     return;
 }
@@ -1428,6 +1464,22 @@ void Network::writePeriodicNetwork() {
     }
     cnxOutputFile.close();
 
+
+    return;
+}
+
+void Network::writeRingStatistics() {
+    //write ring statistics and pi matrix
+
+    string rsOutputFileName=outPrefix+"analysis_ring_statistics.out";
+    ofstream rsOutputFile(rsOutputFileName, ios::in|ios::trunc);
+    writeFileRowVector(rsOutputFile,ringStatistics);
+    rsOutputFile.close();
+
+    string piOutputFileName=outPrefix+"analysis_pi_matrix.out";
+    ofstream piOutputFile(piOutputFileName, ios::in|ios::trunc);
+    writeFileMatrix(piOutputFile,piMatrix);
+    piOutputFile.close();
 
     return;
 }

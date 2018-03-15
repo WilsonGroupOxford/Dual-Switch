@@ -22,7 +22,11 @@ void Simulation::run() {
         networkTargetsReached.push_back(network.getConsistency());
         networkIntersectionFree.push_back(network.getIntersectionStatus());
 
-        network.write();
+        if(networkConsistent.rbegin()[0]){
+            network.analyse(logfile);
+            network.write();
+        }
+
 
     }
     logfile.close();

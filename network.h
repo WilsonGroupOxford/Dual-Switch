@@ -103,14 +103,21 @@ private:
     vector<int> nextTopologicalShell(vector<int> &currentShell, vector<int> &prevShell); //find two-sided topological shell
     vector<int> findNodeRing(int n); //find ring around a central node
 
-
     //Checking
     void checkFidelity(); //check to ensure consistency
     void checkGeometry(); //check for node edge overlap
 
+    //###### Analysis variables ######
+    vector<double> ringStatistics; //ring statistics of network
+    vector< vector<double> > piMatrix; //normalised p matrix
+
+    //###### Analysis unctions ######
+    void analyseRingStatistics(); //calculate ring statistics and normalise pi matrix
+
     //###### Write functions ######
     void writeDual(); //write out dual network
     void writePeriodicNetwork(); //calculate and write out network for periodic visualisation
+    void writeRingStatistics(); //write out ring statistics
 
 public:
     void setIO(string in, string out); //set input/output properties
@@ -123,6 +130,7 @@ public:
     bool getTargetStatus(); //get whether target is met
     bool getIntersectionStatus(); //get whether has intersecting edges in dual
     void construct(ofstream &logfile); //aim to make network with supplied properties
+    void analyse(ofstream &logfile); //analyse network properties
     void write(); //write out control
 };
 
