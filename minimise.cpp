@@ -374,7 +374,10 @@ void HarmonicMinimiser::steepestDescent(double x, double y, double rx, double ry
     pbcY=y;
     pbcRX=rx;
     pbcRY=ry;
-    cout<<"Starting intersection "<<checkIntersectionsPBC()<<endl;
+    if(!resolveInitialIntersectionsPBC()) {
+        cout<<"Could not resolve initial intersections"<<endl;
+        return;
+    }
     iterations=0; //intialise iteration counter
     previousEnergy=numeric_limits<double>::infinity(); //set initial energy to infinite
     deltaEZeroCount=0; //initialise no energy change counter
@@ -490,6 +493,179 @@ void HarmonicMinimiser::wrapAroundCoordinates() {
         coordinates[i].y=coordinates[i].y-pbcY*round(coordinates[i].y*pbcRY);
     }
     return;
+}
+
+bool HarmonicMinimiser::resolveInitialIntersectionsPBC() {
+
+    bool resolved=!checkIntersectionsPBC();
+    if(resolved) return true; //return if no intersections
+    cout<<"**"<<endl;
+    //get intersecting lines
+    vector<DoublePair> intersectingLines=getIntersectionsPBC();
+    int nIntersectingLines=intersectingLines.size();
+
+    //find main line common to all
+    int majorIntersectionCount;
+    Pair majorIntersection=findMajorIntersection(intersectingLines, majorIntersectionCount);
+
+    //abort if not one major line
+    if(majorIntersectionCount!=nIntersectingLines) return false;
+
+    //get list of unique points
+    vector<int> uniquePoints=findUniquePoints(intersectingLines,majorIntersection);
+
+    //resolve intersections
+    resolved=moveIntersectingPointsPBC(uniquePoints, majorIntersection, nIntersectingLines);
+
+    return resolved;
+}
+
+vector<DoublePair> HarmonicMinimiser::getIntersectionsPBC() {
+    vector<DoublePair> intersectingLines; //stored intersecting pairs
+    intersectingLines.clear();
+    Crd2d line1a, line1b, line2a, line2b; //coordinates as minimum images to crd 1a
+    for(int i=0; i<nIntersectionPairs; ++i){
+        line1a=coordinates[intersectionPairs[i].a];
+        line1b=minimumImageCrd(line1a,coordinates[intersectionPairs[i].b],pbcX,pbcY,pbcRX,pbcRY);
+        line2a=minimumImageCrd(line1a,coordinates[intersectionPairs[i].c],pbcX,pbcY,pbcRX,pbcRY);
+        line2b=minimumImageCrd(line1a,coordinates[intersectionPairs[i].d],pbcX,pbcY,pbcRX,pbcRY);
+        if(properIntersectionLines(line1a,line1b,line2a,line2b)) intersectingLines.push_back(intersectionPairs[i]);
+    }
+    return intersectingLines;
+}
+
+bool HarmonicMinimiser::moveIntersectingPointsPBC(vector<int> &uniquePoints, Pair &majorIntersection,
+                                               int &nIntersections) {
+    //move points above and below major intersection and check if resolved intersections
+    //take minimum images relative to major point a
+
+
+    //set up axes relative to major intersection
+    Vec2d xAxis(coordinates[majorIntersection.a],coordinates[majorIntersection.b],pbcX,pbcY,pbcRX,pbcRY);
+    xAxis.normalise();
+    Vec2d yAxis=xAxis;
+    yAxis.rotate90();
+
+    //find points above and below x-axis (major intersection)
+    vector<int> pointsAboveX, pointsBelowX;
+    vector<Crd2d> initialCrdsAboveX, initialCrdsBelowX; //save intial coordinates if need to revert
+    Vec2d posVec;
+    pointsAboveX.clear();
+    pointsBelowX.clear();
+    initialCrdsAboveX.clear();
+    initialCrdsBelowX.clear();
+    double dotProd;
+    for(int i=0; i<uniquePoints.size(); ++i){
+        posVec=Vec2d(coordinates[majorIntersection.a],coordinates[uniquePoints[i]],pbcX,pbcY,pbcRX,pbcRY);
+        dotProd=vectorDotProduct(yAxis,posVec);
+        if(dotProd>0.0){
+            pointsAboveX.push_back(uniquePoints[i]);
+            initialCrdsAboveX.push_back(coordinates[uniquePoints[i]]);
+        }
+        else{
+            pointsBelowX.push_back(uniquePoints[i]);
+            initialCrdsBelowX.push_back(coordinates[uniquePoints[i]]);
+        }
+    }
+
+    //try moving points above x to below x
+    for(int i=0; i<pointsAboveX.size();++i){
+        posVec=Vec2d(coordinates[majorIntersection.a],coordinates[pointsAboveX[i]],pbcX,pbcY,pbcRX,pbcRY);
+        dotProd=vectorDotProduct(yAxis,posVec);
+        Vec2d direction=yAxis;
+        direction.scale(dotProd*1.01);
+        direction.invert();
+        coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x+direction.x;
+        coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y+direction.y;
+        //wrap around for good measure
+        coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x-pbcX*round(coordinates[pointsAboveX[i]].x*pbcRX);
+        coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y-pbcY*round(coordinates[pointsAboveX[i]].y*pbcRY);
+    }
+
+    //check if successful and if not revert and move points below x to above x
+    bool moveSuccessful=!checkIntersectionsPBC();
+    if(moveSuccessful) return true;
+
+    for(int i=0; i<pointsAboveX.size(); ++i) coordinates[pointsAboveX[i]]=initialCrdsAboveX[i]; //revert
+    for(int i=0; i<pointsBelowX.size();++i){//move points below x to above
+        posVec=Vec2d(coordinates[majorIntersection.a],coordinates[pointsBelowX[i]],pbcX,pbcY,pbcRX,pbcRY);
+        dotProd=vectorDotProduct(yAxis,posVec);
+        Vec2d direction=yAxis;
+        direction.scale(dotProd*1.01);
+        direction.invert();
+        coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x+direction.x;
+        coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y+direction.y;
+        //wrap around for good measure
+        coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x-pbcX*round(coordinates[pointsBelowX[i]].x*pbcRX);
+        coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y-pbcY*round(coordinates[pointsBelowX[i]].y*pbcRY);
+    }
+
+    //check if successful and if not revert and try moving slightly in x-direction
+    moveSuccessful=!checkIntersectionsPBC();
+    if(moveSuccessful) return true;
+
+
+    for (int i = 0; i < pointsBelowX.size(); ++i) coordinates[pointsBelowX[i]] = initialCrdsBelowX[i]; //revert
+    //move above to below again, but shift in x
+    Vec2d directionInc=xAxis;
+    directionInc.scale(0.1);
+    for(int i=0; i<pointsAboveX.size();++i){
+        posVec=Vec2d(coordinates[majorIntersection.a],coordinates[pointsAboveX[i]],pbcX,pbcY,pbcRX,pbcRY);
+        dotProd=vectorDotProduct(yAxis,posVec);
+        Vec2d direction=yAxis;
+        direction.scale(dotProd*1.01);
+        direction.invert();
+        coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x+direction.x-xAxis.x;
+        coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y+direction.y-xAxis.y;
+        //wrap around for good measure
+        coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x-pbcX*round(coordinates[pointsAboveX[i]].x*pbcRX);
+        coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y-pbcY*round(coordinates[pointsAboveX[i]].y*pbcRY);
+    }
+    //increment along in x direction
+    for(int j=0; j<=20; ++j){
+        moveSuccessful=!checkIntersectionsPBC();
+        if(moveSuccessful) return true;
+        for(int i=0; i<pointsAboveX.size();++i){
+            coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x+directionInc.x;
+            coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y+directionInc.y;
+            //wrap around for good measure
+            coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x-pbcX*round(coordinates[pointsAboveX[i]].x*pbcRX);
+            coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y-pbcY*round(coordinates[pointsAboveX[i]].y*pbcRY);
+        }
+    }
+
+    //if not successful try same with points below
+    for(int i=0; i<pointsAboveX.size(); ++i) coordinates[pointsAboveX[i]]=initialCrdsAboveX[i]; //revert
+    //move above to below again, but shift in x
+    for(int i=0; i<pointsBelowX.size();++i){
+        posVec=Vec2d(coordinates[majorIntersection.a],coordinates[pointsBelowX[i]],pbcX,pbcY,pbcRX,pbcRY);
+        dotProd=vectorDotProduct(yAxis,posVec);
+        Vec2d direction=yAxis;
+        direction.scale(dotProd*1.01);
+        direction.invert();
+        coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x+direction.x-xAxis.x;
+        coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y+direction.y-xAxis.y;
+        //wrap around for good measure
+        coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x-pbcX*round(coordinates[pointsBelowX[i]].x*pbcRX);
+        coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y-pbcY*round(coordinates[pointsBelowX[i]].y*pbcRY);
+    }
+    //increment along in x direction
+    for(int j=0; j<=20; ++j){
+        moveSuccessful=!checkIntersectionsPBC();
+        if(moveSuccessful) return true;
+        for(int i=0; i<pointsBelowX.size();++i){
+            coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x+directionInc.x;
+            coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y+directionInc.y;
+            //wrap around for good measure
+            coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x-pbcX*round(coordinates[pointsBelowX[i]].x*pbcRX);
+            coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y-pbcY*round(coordinates[pointsBelowX[i]].y*pbcRY);
+        }
+    }
+
+    //if not successful revert
+    for(int i=0; i<pointsBelowX.size(); ++i) coordinates[pointsBelowX[i]]=initialCrdsBelowX[i]; //revert
+
+    return false;
 }
 
 vector<Crd2d> HarmonicMinimiser::getMinimisedCoordinates() {

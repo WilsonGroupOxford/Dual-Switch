@@ -45,11 +45,12 @@ private:
     bool checkIntersections(); //check if any line intersections
     void checkConvergence(); //check energy convergence or maximum iterations
 
+    //overlap resolution functions
+    bool resolveInitialIntersections(); //attempt to remove starting intersections
     vector<DoublePair> getIntersections(); //get intersecting lines
     Pair findMajorIntersection(vector<DoublePair> &intersectingLines, int &majorCount); //find intersection common to all
     vector<int> findUniquePoints(vector<DoublePair> &intersectingLines, Pair &majorLine); //get list of points which could be moved
     bool moveIntersectingPoints(vector<int> &uniquePoints, Pair &majorIntersection, int &nIntersections); //move subset of points to resolve intersections
-    bool resolveInitialIntersections(); //attempt to remove starting intersections
 
     //periodic minimisation functions
     void calculateForcesPBC(); //force on each point with pbc
@@ -59,6 +60,12 @@ private:
     void lineSearchPBC(); //move along lines of force to minimum energy with pbc
     bool checkIntersectionsPBC(); //check if any line intersections
     void wrapAroundCoordinates(); //apply periodic boundary to wrap coordinates
+
+    //periodic overlap resolution functions
+    bool resolveInitialIntersectionsPBC(); //attempt to remove starting intersections
+    vector<DoublePair> getIntersectionsPBC(); //get intersecting lines
+    bool moveIntersectingPointsPBC(vector<int> &uniquePoints, Pair &majorIntersection, int &nIntersections); //move subset of points to resolve intersections
+
     //###### tests ######
     void runTests();
 
