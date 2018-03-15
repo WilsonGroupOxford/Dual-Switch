@@ -42,7 +42,7 @@ private:
     //###### Construction variables ######
 
     //Further network properties
-    bool consistent, noOverlap; //network and p vector/matrix consistent, check for edge ovelap
+    bool consistent, noIntersections; //network and p vector/matrix consistent, check for edge intersections
     string name; //name of network for writing to files
     int minRingSize, maxRingSize, nRingSizes, index6, nNodes, nRings; //ring size limits, index of 6mr, number of nodes in network, number of rings in network
     double periodicBoxX, periodicBoxY, rPeriodicBoxX, rPeriodicBoxY; //dimensions of periodic box and reciprocals
@@ -93,6 +93,8 @@ private:
     void findNodeRings(); //find rings of nodes
     int localMinimisationPeriodic(vector<int> &switchTriangles); //minimise locally
     int localMinimisationAperiodic(vector<int> &switchTriangles); //minimise locally
+    void globalMinimisationPeriodic(); //minimise globally
+    void globalMinimisationAperiodic(); //minimise globally
     vector<int> nextTopologicalShell(vector<int> &currentShell); //find two-sided topological shell
     vector<int> nextTopologicalShell(vector<int> &currentShell, vector<int> &prevShell); //find two-sided topological shell
     vector<int> findNodeRing(int n); //find ring around a central node

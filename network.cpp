@@ -89,8 +89,8 @@ void Network::construct(ofstream &logfile) {
     if(consistent){
         findNodeRings();
         checkGeometry();
-        if(noOverlap) writeFileLine(logfile,name+" has non-overlapping dual");
-        else writeFileLine(logfile,name+" has overlapping dual");
+        if(noIntersections) writeFileLine(logfile,name+" dual has no intersections");
+        else writeFileLine(logfile,name+" dual has intersections");
     }
 
 
@@ -446,7 +446,6 @@ void Network::monteCarlo() {
                 break;
             }
         }
-//        if(globalGeomOpt) globalMinimisationPeriodic(); //globally geometry optimise
     }
     else{
         for(int move=0; move<mcMaxMoves; ++move){
@@ -807,26 +806,7 @@ void Network::findNodeRings() {
     vector<int> ring; //ring around central node
     for(int i=0; i<nNodes; ++i){//loop over all nodes in graph not on edge
         if(!nodes[i].edge){
-            ring.resize(nodes[i].size);
-            centralCnxs=nodes[i].connections; //get connections around central ring
-            ring[0]=centralCnxs[0]; //pick first connection as starting point
-            outerCnxs=nodes[ring[0]].connections;
-            for(int j=0; j<outerCnxs.size(); ++j){//find second connection in ring
-                if(checkVectorForValue(centralCnxs,outerCnxs[j])){
-                    ring[1]=outerCnxs[j];
-                    break;
-                };
-            }
-            for(int j=2; j<nodes[i].size; ++j){//find remaining connections
-                outerCnxs=nodes[ring[j-1]].connections;
-                removeValueFromVectorByRef(outerCnxs,ring[j-2]); //remove previous node in chain
-                for(int k=0; k<outerCnxs.size(); ++k){
-                    if(checkVectorForValue(centralCnxs,outerCnxs[k])) {
-                        ring[j] = outerCnxs[k];
-                        break;
-                    }
-                }
-            }
+            ring=findNodeRing(i);
             nodeRings.push_back(Ring(nodes[i].size,ring,i));
         }
     }
@@ -1016,6 +996,13 @@ int Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
     return status;
 }
 
+void Network::globalMinimisationPeriodic() {
+    //minimise entire network, if double checked no line intersections
+
+
+    return;
+}
+
 vector<int> Network::findNodeRing(int n){
     //find ring around a central node
 
@@ -1115,54 +1102,58 @@ void Network::checkFidelity() {
 void Network::checkGeometry() {
     //check for node edge overlap which would lead to ring overlap
 
-    //loop over node rings, check central->ring edge does not overlap with ring->ring edge
-    noOverlap=true;
-    int ringSize;
-    Crd2d edge1a, edge1b, edge2a, edge2b; //coordinates of edges to check intersection
-    if(periodic){
-        Crd2d origin;
-        for(int i=0; i<nRings; ++i){
-            ringSize=nodeRings[i].size;
-
-            //recentre ring on central node to account for pbc
-            vector<Crd2d> recentredCrds(ringSize+1);
-            for(int j=0; j<ringSize; ++j) recentredCrds[j]=nodes[nodeRings[i].chain[j]].coordinate;
-            recentredCrds[ringSize]=nodes[nodeRings[i].chain[ringSize]].coordinate;
-            for(int j=0; j<ringSize+1; ++j) recentredCrds[j]=recentreCrdByCrd(nodes[i].coordinate, recentredCrds[j], periodicBoxX, periodicBoxY, rPeriodicBoxY, rPeriodicBoxY);
-
-            //check overlap of recentred edges
-            edge1a=origin; //coordinate of central node
-            for(int j=0; j<ringSize; ++j){
-                edge1b=recentredCrds[j]; //coordinate of ring node
-                for(int k=0; k<ringSize; ++k){
-                    edge2a=recentredCrds[k]; //coordinated of ring node
-                    edge2b=recentredCrds[k+1]; //coordinated of ring node
-                    if(properIntersectionLines(edge1a,edge1b,edge2a,edge2b)){
-                        noOverlap=false;
-//                        cout<<nodeRings[i].id<<" "<<nodeRings[i].chain[j]<<" "<<nodeRings[i].chain[k]<<" "<<nodeRings[i].chain[k+1]<<endl;
+    //get list of unique line intersections
+    vector<DoublePair> linePairs;
+    DoublePair linePair;
+    int lineA, lineB, lineC, lineD;
+    map<string,int> pairIDMap;
+    string pairID;
+    linePairs.clear();
+    for(int i=0; i<nRings; ++i){//loop over ring centres
+        lineA=nodeRings[i].id;
+        for(int j=0; j<nodeRings[i].size; ++j){//loop over central->chain lines
+            lineB=nodeRings[i].chain[j];
+            for(int k=0; k<nodeRings[i].size;++k){//loop over chain->chain lines
+                lineC=nodeRings[i].chain[k];
+                lineD=nodeRings[i].chain[k+1];
+                if(lineC!=lineB && lineD!=lineB){//neglect chain->chain lines containing B
+                    linePair=DoublePair(lineA,lineB,lineC,lineD);
+                    //ensure each pair is only used once
+                    linePair.sort();
+                    pairID=linePair.getID();
+                    if(!pairIDMap.count(pairID)){
+                        linePairs.push_back(linePair);
+                        pairIDMap[pairID]=1;
                     }
                 }
             }
+        }
+    }
+
+    //check if any intersections overlap
+    noIntersections=true;
+    if(periodic){
+        Crd2d line1a, line1b, line2a, line2b; //coordinates as minimum images to crd 1a
+        for(int i=0; i<linePairs.size();++i){
+            line1a=nodes[linePairs[i].a].coordinate;
+            line1b=minimumImageCrd(line1a,nodes[linePairs[i].b].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+            line2a=minimumImageCrd(line1a,nodes[linePairs[i].c].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+            line2b=minimumImageCrd(line1a,nodes[linePairs[i].d].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+            noIntersections=!properIntersectionLines(line1a,line1b,line2a,line2b);
+            if(!noIntersections) break;
         }
     }
     else{
-        for(int i=0; i<nRings; ++i){
-            ringSize=nodeRings[i].size;
-            edge1a=nodes[nodeRings[i].id].coordinate; //coordinate of central node
-            for(int j=0; j<ringSize; ++j){
-                edge1b=nodes[nodeRings[i].chain[j]].coordinate; //coordinate of ring node
-                for(int k=0; k<ringSize; ++k){
-                    edge2a=nodes[nodeRings[i].chain[k]].coordinate; //coordinate of ring node
-                    edge2b=nodes[nodeRings[i].chain[k+1]].coordinate; //coordinate of ring node
-                    if(properIntersectionLines(edge1a,edge1b,edge2a,edge2b)){
-                        noOverlap=false;
-//                        cout<<nodeRings[i].id<<" "<<nodeRings[i].chain[j]<<" "<<nodeRings[i].chain[k]<<" "<<nodeRings[i].chain[k+1]<<endl;
-                    }
-                }
-            }
+        Crd2d line1a, line1b, line2a, line2b; //coordinates as minimum images to crd 1a
+        for(int i=0; i<linePairs.size();++i){
+            line1a=nodes[linePairs[i].a].coordinate;
+            line1b=nodes[linePairs[i].b].coordinate;
+            line2a=nodes[linePairs[i].c].coordinate;
+            line2b=nodes[linePairs[i].d].coordinate;
+            noIntersections=!properIntersectionLines(line1a,line1b,line2a,line2b);
+            if(!noIntersections) break;
         }
     }
-
     return;
 }
 
