@@ -662,9 +662,21 @@ bool HarmonicMinimiser::moveIntersectingPointsPBC(vector<int> &uniquePoints, Pai
     return false;
 }
 
+//###### GETTERS ######
+
 vector<Crd2d> HarmonicMinimiser::getMinimisedCoordinates() {
     //return minimised coordinates
     return coordinates;
+}
+
+double HarmonicMinimiser::getEnergy() {
+    //return final minimised energy
+    return currentEnergy;
+}
+
+int HarmonicMinimiser::getIterations() {
+    //return number of iterations of minimisation
+    return iterations;
 }
 
 void HarmonicMinimiser::runTests() {

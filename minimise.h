@@ -76,6 +76,8 @@ public:
     int steepestDescent(); //steepest descent minimisation
     int steepestDescent(double x, double y, double rx, double ry); //steepest descent minimisation with periodic boundary conditions
     vector<Crd2d> getMinimisedCoordinates(); //return minimised coordinates
+    double getEnergy(); //return final energy
+    int getIterations(); //number of iterations before optimisation completed
 };
 
 

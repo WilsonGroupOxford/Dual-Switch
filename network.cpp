@@ -64,6 +64,11 @@ bool Network::getTargetStatus() {
     return mcTargetReached;
 }
 
+bool Network::getIntersectionStatus() {
+    //whether there are no intersections in the dual
+    return noIntersections;
+}
+
 //###### Construction Main ######
 
 void Network::construct(ofstream &logfile) {
@@ -91,10 +96,13 @@ void Network::construct(ofstream &logfile) {
         checkGeometry();
         if(noIntersections) writeFileLine(logfile,name+" dual has no intersections");
         else writeFileLine(logfile,name+" dual has intersections");
+
+        if(noIntersections && globalGeomOpt){
+            if(periodic) globalMinimisationPeriodic();
+            else globalMinimisationAperiodic();
+            writeFileLine(logfile,name+" globally geometry optimised with "+to_string(geomOptIterations)+" iterations of steepest descent");
+        }
     }
-
-
-
 
     return;
 }
@@ -997,8 +1005,149 @@ int Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
 }
 
 void Network::globalMinimisationPeriodic() {
-    //minimise entire network, if double checked no line intersections
+    //minimse entire network
 
+    //make list of coordinates
+    vector<Crd2d> globalCoordinates(nNodes);
+    for(int i=0; i<nNodes; ++i) globalCoordinates[i]=nodes[i].coordinate;
+
+    //make unique list of harmonic pairs
+    vector<Pair> globalHarmonicPairs;
+    vector<double> globalHarmonicR0;
+    globalHarmonicPairs.clear();
+    globalHarmonicR0.clear();
+    int globalA, globalB, indexA, indexB;
+    for(int i=0; i<nNodes; ++i){
+        globalA=i;
+        for(int j=0; j<nodes[globalA].size; ++j){
+            globalB=nodes[globalA].connections[j];
+            if(globalA<globalB){//prevent double counting
+                globalHarmonicPairs.push_back(Pair(globalA,globalB));
+                indexA=nodes[globalA].sizeIndex;
+                indexB=nodes[globalB].sizeIndex;
+                globalHarmonicR0.push_back(harmonicR0Matrix[indexA][indexB]);
+            }
+        }
+    }
+
+    //get list of unique line intersections
+    vector<DoublePair> linePairs;
+    DoublePair linePair;
+    int lineA, lineB, lineC, lineD;
+    map<string,int> pairIDMap;
+    string pairID;
+    linePairs.clear();
+    for(int i=0; i<nRings; ++i){//loop over ring centres
+        lineA=nodeRings[i].id;
+        for(int j=0; j<nodeRings[i].size; ++j){//loop over central->chain lines
+            lineB=nodeRings[i].chain[j];
+            for(int k=0; k<nodeRings[i].size;++k){//loop over chain->chain lines
+                lineC=nodeRings[i].chain[k];
+                lineD=nodeRings[i].chain[k+1];
+                if(lineC!=lineB && lineD!=lineB){//neglect chain->chain lines containing B
+                    linePair=DoublePair(lineA,lineB,lineC,lineD);
+                    //ensure each pair is only used once
+                    linePair.sort();
+                    pairID=linePair.getID();
+                    if(!pairIDMap.count(pairID)){
+                        linePairs.push_back(linePair);
+                        pairIDMap[pairID]=1;
+                    }
+                }
+            }
+        }
+    }
+
+    //no fixed region
+    vector<int> fixedRegion;
+    fixedRegion.clear();
+
+    //minimise
+    HarmonicMinimiser globalMinimiser(globalCoordinates,globalHarmonicPairs,fixedRegion,globalHarmonicR0,harmonicK,globalGeomOptCC,geomOptLineSearchInc,globalGeomOptMaxIt,linePairs);
+    int status=globalMinimiser.steepestDescent(periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+    globalCoordinates=globalMinimiser.getMinimisedCoordinates();
+
+    //update coordinates
+    for(int i=0; i<nNodes; ++i) nodes[i].coordinate=globalCoordinates[i];
+
+    //get global energy and iterations
+    geomOptEnergy=globalMinimiser.getEnergy();
+    geomOptIterations=globalMinimiser.getIterations();
+
+    return;
+}
+
+void Network::globalMinimisationAperiodic() {
+    //minimse entire network
+
+    //make list of coordinates
+    vector<Crd2d> globalCoordinates(nNodes);
+    for(int i=0; i<nNodes; ++i) globalCoordinates[i]=nodes[i].coordinate;
+
+    //make unique list of harmonic pairs
+    vector<Pair> globalHarmonicPairs;
+    vector<double> globalHarmonicR0;
+    globalHarmonicPairs.clear();
+    globalHarmonicR0.clear();
+    int globalA, globalB, indexA, indexB;
+    for(int i=0; i<nNodes; ++i){
+        globalA=i;
+        for(int j=0; j<nodes[globalA].size; ++j){
+            globalB=nodes[globalA].connections[j];
+            if(globalA<globalB){//prevent double counting
+                globalHarmonicPairs.push_back(Pair(globalA,globalB));
+                if(nodes[globalA].edge) indexA=index6;
+                else indexA=nodes[globalA].sizeIndex;
+                if(nodes[globalB].edge) indexB=index6;
+                else indexB=nodes[globalB].sizeIndex;
+                globalHarmonicR0.push_back(harmonicR0Matrix[indexA][indexB]);
+            }
+        }
+    }
+
+    //get list of unique line intersections
+    vector<DoublePair> linePairs;
+    DoublePair linePair;
+    int lineA, lineB, lineC, lineD;
+    map<string,int> pairIDMap;
+    string pairID;
+    linePairs.clear();
+    for(int i=0; i<nRings; ++i){//loop over ring centres
+        lineA=nodeRings[i].id;
+        for(int j=0; j<nodeRings[i].size; ++j){//loop over central->chain lines
+            lineB=nodeRings[i].chain[j];
+            for(int k=0; k<nodeRings[i].size;++k){//loop over chain->chain lines
+                lineC=nodeRings[i].chain[k];
+                lineD=nodeRings[i].chain[k+1];
+                if(lineC!=lineB && lineD!=lineB){//neglect chain->chain lines containing B
+                    linePair=DoublePair(lineA,lineB,lineC,lineD);
+                    //ensure each pair is only used once
+                    linePair.sort();
+                    pairID=linePair.getID();
+                    if(!pairIDMap.count(pairID)){
+                        linePairs.push_back(linePair);
+                        pairIDMap[pairID]=1;
+                    }
+                }
+            }
+        }
+    }
+
+    //no fixed region
+    vector<int> fixedRegion;
+    fixedRegion.clear();
+
+    //minimise
+    HarmonicMinimiser globalMinimiser(globalCoordinates,globalHarmonicPairs,fixedRegion,globalHarmonicR0,harmonicK,globalGeomOptCC,geomOptLineSearchInc,globalGeomOptMaxIt,linePairs);
+    int status=globalMinimiser.steepestDescent();
+    globalCoordinates=globalMinimiser.getMinimisedCoordinates();
+
+    //update coordinates
+    for(int i=0; i<nNodes; ++i) nodes[i].coordinate=globalCoordinates[i];
+
+    //get global energy and iterations
+    geomOptEnergy=globalMinimiser.getEnergy();
+    geomOptIterations=globalMinimiser.getIterations();
 
     return;
 }

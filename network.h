@@ -65,6 +65,10 @@ private:
     uniform_int_distribution<int> nodeDistribution; //mersenne twister uniform distribution between 0->nNodes
     uniform_real_distribution<double> zeroOneDistribution, connectionPickDistribution; //mersenne twister uniform distribution between 0->1
 
+    //further geometry optimisation variables
+    double geomOptEnergy; //energy of global geometry optimisation
+    int geomOptIterations; //number of iterations of global geometry optimisation
+
     //###### Construction functions ######
 
     //Initialisation
@@ -117,6 +121,7 @@ public:
     void setAnalysis(bool perVis); //set analysis tools
     bool getConsistency(); //get whether network constructed is consistent
     bool getTargetStatus(); //get whether target is met
+    bool getIntersectionStatus(); //get whether has intersecting edges in dual
     void construct(ofstream &logfile); //aim to make network with supplied properties
     void write(); //write out control
 };

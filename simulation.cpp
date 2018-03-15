@@ -20,6 +20,7 @@ void Simulation::run() {
 
         networkConsistent.push_back(network.getConsistency());
         networkTargetsReached.push_back(network.getConsistency());
+        networkIntersectionFree.push_back(network.getIntersectionStatus());
 
         network.write();
 
