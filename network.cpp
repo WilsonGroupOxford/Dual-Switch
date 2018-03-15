@@ -439,6 +439,7 @@ void Network::monteCarlo() {
             calculateTrialPPeriodic(switchTriangles, trialPVector, trialPMatrix);
             trialAwParameters=calculateAboavWeaireFit(trialPVector,trialPMatrix);
             trialMcEnergy=mcEnergyFunctional(trialAwParameters,trialPVector);
+            testCounter=move;
             acceptTrialMove=evaluateMetropolisCondition(trialMcEnergy,mcEnergy);
             if(acceptTrialMove) mcTargetReached=acceptDualSwitchPeriodic(switchTriangles,trialPVector,trialPMatrix,trialMcEnergy,trialAwParameters);
             if(mcTargetReached){
@@ -729,15 +730,10 @@ bool Network::acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int>
     mcEnergy=trialMcEnergy;
     aboavWeaireParams=trialAwParams;
 
-    //untangle dual if introduced overlaps
-    if(resolveDualOverlaps) findAndResolveDualOverlapsPeriodic(switchTriangles);
-
     //locally minimise
     if(localGeomOpt) localMinimisationPeriodic(switchTriangles);
 
-    cout<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
-//    consoleVector(switchTriangles);
-//    checkFidelity();
+    cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
 
     if(mcEnergy<=mcConvergence) return true;
     else return false;
@@ -758,14 +754,12 @@ bool Network::acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int
     mcEnergy=trialMcEnergy;
     aboavWeaireParams=trialAwParams;
 
-    //untangle dual if introduced overlaps
-    if(resolveDualOverlaps) findAndResolveDualOverlapsAperiodic(switchTriangles);
-
     //locally minimise
+//    if(testCounter==19938) {
+//        consoleVector(switchTriangles);
+//    }
     if(localGeomOpt) localMinimisationAperiodic(switchTriangles);
-
-    cout<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
-
+    cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
     if(mcEnergy<=mcConvergence) return true;
     else return false;
 }
@@ -817,105 +811,6 @@ void Network::findNodeRings() {
         }
     }
     nRings=nodeRings.size(); //number of rings in network
-
-    return;
-}
-
-void Network::findAndResolveDualOverlapsPeriodic(vector<int> &switchTriangles) {
-    //check if dual switch move introduces node edge overlap, and if so move nodes to resolve
-
-    //edges for overlap, edge 1 is the new edge constructed by the mc move
-    Crd2d edge1a, edge1b, edge2a, edge2b; //coordinates of edges to check intersection, all minimum images to edge1a
-    edge1a=nodes[switchTriangles[2]].coordinate;
-    edge1b=minimumImageCrd(edge1a,nodes[switchTriangles[3]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
-
-    //check overlap with each side of triangle pair
-    bool overlap=false;
-    for(int n=0; n<2; ++n){
-        vector<int> cnxs=nodes[switchTriangles[n]].connections; //get connections
-        removeValueFromVectorByRef(cnxs,switchTriangles[2]); //remove link to other nodes in triangle pair
-        removeValueFromVectorByRef(cnxs,switchTriangles[3]); //remove link to other nodes in triangle pair
-        edge2a=minimumImageCrd(edge1a,nodes[switchTriangles[n]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
-        for(int i=0; i<cnxs.size(); ++i){
-            edge2b=minimumImageCrd(edge1a,nodes[cnxs[i]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
-            if(properIntersectionLines(edge1a,edge1b,edge2a,edge2b)){
-                overlap=true;
-                break;
-            }
-        }
-        if(overlap){//if overlap move node
-            //set up orthogonal axes with second triangle pair 2->3
-            Vec2d xAxis, yAxis;
-            yAxis=Vec2d(edge1a,edge1b);
-            yAxis.normalise();
-            xAxis=yAxis;
-            xAxis.rotate90();
-            //get vector in direction of 2->0/1, and components along axes
-            Vec2d vec=Vec2d(edge1a,edge2a);
-            double xAxisComponent=-vectorDotProduct(vec,xAxis), yAxisComponent=vectorDotProduct(vec,yAxis);
-            //reflect node 0/1 in yAxis
-            vec.x=xAxis.x*xAxisComponent+yAxis.x*yAxisComponent;
-            vec.y=xAxis.y*xAxisComponent+yAxis.y*yAxisComponent;
-            nodes[switchTriangles[n]].coordinate=crdFromVectorAndCrd(vec,edge1a);
-            applyPeriodicBoundary(nodes[switchTriangles[n]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
-            cout<<"***"<<endl;
-            break;
-        }
-    }
-
-    return;
-}
-
-void Network::findAndResolveDualOverlapsAperiodic(vector<int> &switchTriangles) {
-    //check if dual switch move introduces node edge overlap, and if so move nodes to resolve
-
-    //edges for overlap, edge 1 is the new edge constructed by the mc move
-    Crd2d edge1a, edge1b, edge2a, edge2b; //coordinates of edges to check intersection
-    edge1a=nodes[switchTriangles[2]].coordinate;
-    edge1b=nodes[switchTriangles[3]].coordinate;
-
-    //check overlap with each side of triangle pair
-    bool overlap=false;
-    for(int n=0; n<2; ++n){
-        vector<int> cnxs=nodes[switchTriangles[n]].connections; //get connections
-        removeValueFromVectorByRef(cnxs,switchTriangles[2]); //remove link to other nodes in triangle pair
-        removeValueFromVectorByRef(cnxs,switchTriangles[3]); //remove link to other nodes in triangle pair
-        edge2a=nodes[switchTriangles[n]].coordinate;
-        for(int i=0; i<cnxs.size(); ++i){
-            edge2b=nodes[cnxs[i]].coordinate;
-            if(properIntersectionLines(edge1a,edge1b,edge2a,edge2b)){
-                overlap=true;
-                break;
-            }
-        }
-        if(overlap){//if overlap move node
-            //set up orthogonal axes with second triangle pair 2->3
-            Vec2d xAxis, yAxis;
-            yAxis=Vec2d(edge1a,edge1b);
-            yAxis.normalise();
-            xAxis=yAxis;
-            xAxis.rotate90();
-            //get vector in direction of 2->0/1, and components along axes
-            Vec2d vec=Vec2d(edge1a,edge2a);
-            double xAxisComponent=-vectorDotProduct(vec,xAxis), yAxisComponent=vectorDotProduct(vec,yAxis);
-            //reflect node 0/1 in yAxis
-            vec.x=xAxis.x*xAxisComponent+yAxis.x*yAxisComponent;
-            vec.y=xAxis.y*xAxisComponent+yAxis.y*yAxisComponent;
-            nodes[switchTriangles[n]].coordinate=crdFromVectorAndCrd(vec,edge1a);
-//            Vec2d moveDirection, direction;
-//            for(int i=0; i<cnxs.size(); ++i){
-//                direction=Vec2d(edge2a,nodes[cnxs[i]].coordinate);
-//                direction.normalise();
-//                moveDirection.addVector(direction);
-//            }
-//            moveDirection.normalise();
-//            nodes[switchTriangles[n]].coordinate.x=nodes[switchTriangles[n]].coordinate.x+moveDirection.x;
-//            nodes[switchTriangles[n]].coordinate.y=nodes[switchTriangles[n]].coordinate.y+moveDirection.y;
-
-            cout<<"***"<<endl;
-            break;
-        }
-    }
 
     return;
 }

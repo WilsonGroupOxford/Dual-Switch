@@ -32,6 +32,7 @@ struct DoublePair{
     DoublePair();
     DoublePair(int aInit, int bInit, int cInit, int dInit);
     void sort();
+    bool checkPairs();
     string getID();
 };
 
@@ -45,6 +46,8 @@ struct Vec2d{
     double length();
     void normalise();
     void rotate90();
+    void scale(double s);
+    void invert();
     void addVector(Vec2d v);
 };
 
@@ -69,6 +72,9 @@ double signedAreaSqTriangle(Crd2d &a, Crd2d &b, Crd2d &c);
 bool leftTriangle(Crd2d &a, Crd2d &b, Crd2d &c);
 bool collinearPoints(Crd2d &a, Crd2d &b, Crd2d &c, double threshold=0.00001);
 bool properIntersectionLines(Crd2d &l1a, Crd2d &l1b, Crd2d &l2a, Crd2d &l2b);
+bool improperIntersectionLines(Crd2d &l1a, Crd2d &l1b, Crd2d &l2a, Crd2d &l2b);
+bool betweenPoints(Crd2d &a, Crd2d &b, Crd2d &c);
+bool lineIntersection(Crd2d &l1a, Crd2d &l1b, Crd2d &l2a, Crd2d &l2b);
 
 //other useful maths functions
 vector<double> leastSquaresLinearRegression(vector<Crd2d> &data);

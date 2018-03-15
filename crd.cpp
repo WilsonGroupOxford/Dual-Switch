@@ -63,6 +63,10 @@ void DoublePair::sort() {
     return;
 }
 
+bool DoublePair::checkPairs() {
+    return (a==c && b==d);
+}
+
 string DoublePair::getID() {
     return "#"+to_string(a)+"#"+to_string(b)+"#"+to_string(c)+"#"+to_string(d);
 }
@@ -117,6 +121,19 @@ void Vec2d::rotate90() {
     double xx=x, yy=y;
     x=-yy;
     y=xx;
+    return;
+}
+
+void Vec2d::scale(double s) {
+    //scale by length s
+    x=x*s;
+    y=y*s;
+    return;
+}
+
+void Vec2d::invert() {
+    x=-x;
+    y=-y;
     return;
 }
 
@@ -187,6 +204,20 @@ bool properIntersectionLines(Crd2d &l1a, Crd2d &l1b, Crd2d &l2a, Crd2d &l2b){
     if(collinearPoints(l1a,l1b,l2a) || collinearPoints(l1a,l1b,l2b) || collinearPoints(l2a,l2b,l1a) || collinearPoints(l2a,l2b,l1b)) return false;
     return (leftTriangle(l1a,l1b,l2a)^leftTriangle(l1a,l1b,l2b)) && (leftTriangle(l2a,l2b,l1a)^leftTriangle(l2a,l2b,l1b));
 }
+bool improperIntersectionLines(Crd2d &l1a, Crd2d &l1b, Crd2d &l2a, Crd2d &l2b){
+    return betweenPoints(l1a,l1b,l2a) || betweenPoints(l1a,l1b,l2b) || betweenPoints(l2a,l2b,l1a) || betweenPoints(l2a,l2b,l1b);
+}
+bool betweenPoints(Crd2d &a, Crd2d &b, Crd2d &c){
+    //calculates betweenness
+    if(!collinearPoints(a,b,c)) return false;
+    if(a.x != b.x) return ((a.x<=c.x) && (c.x<=b.x)) || ((a.x>=c.x) && (c.x>=b.x));
+    else return ((a.y<=c.y) && (c.y<=b.y)) || ((a.y>=c.y) && (c.y>=b.y));
+}
+bool lineIntersection(Crd2d &l1a, Crd2d &l1b, Crd2d &l2a, Crd2d &l2b){
+    if(properIntersectionLines(l1a,l1b,l2a,l2b)) return true;
+    else return improperIntersectionLines(l1a,l1b,l2a,l2b);
+}
+
 // ########## END ##########
 
 vector<double> leastSquaresLinearRegression(vector<Crd2d> &data){

@@ -92,8 +92,6 @@ private:
     bool acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int> &trialPVec, vector< vector<int> > &trialPMat, double &trialMcEnergy, vector<double> &trialAwParams); //enact dual switch and update trial->current variables
     bool acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int> &trialPVec, vector< vector<int> > &trialPMat, double &trialMcEnergy, vector<double> &trialAwParams); //enact dual switch and update trial->current variables
     void findNodeRings(); //find rings of nodes
-    void findAndResolveDualOverlapsPeriodic(vector<int> &switchTriangles); //untangle dual
-    void findAndResolveDualOverlapsAperiodic(vector<int> &switchTriangles); //untangle dual
     void localMinimisationPeriodic(vector<int> &switchTriangles); //minimise locally
     void localMinimisationAperiodic(vector<int> &switchTriangles); //minimise locally
     vector<int> nextTopologicalShell(vector<int> &currentShell); //find two-sided topological shell
