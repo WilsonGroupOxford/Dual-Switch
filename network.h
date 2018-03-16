@@ -58,7 +58,7 @@ private:
 
     //Further monte carlo properties
     bool mcTargetReached; //whether targets met within convergence
-    int mcProposedMoves; //number of moves proposed during monte carlo
+    int testCounter, geomOptRejectCount, mcProposedMoves, mcAcceptedMoves; //number of moves proposed and accepted during monte carlo
     double mcEnergy, targetMu; //energy of system relative to target properties, mu
     double rMcTemperature, rTargetMu; //reciprocals of key values
     vector<double> rTargetPVector; //reciprocals of key values
@@ -84,7 +84,6 @@ private:
     double metropolisRandomNum(); //random number for mc metropolis condition
 
     //Monte carlo
-    int testCounter;
     void monteCarlo(); //main monte carlo process
     vector<int> pickRandomTrianglePairPeriodic(); //nodes to dual switch
     vector<int> pickRandomTrianglePairAperiodic(); //nodes to dual switch

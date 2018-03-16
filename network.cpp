@@ -90,7 +90,8 @@ void Network::construct(ofstream &logfile) {
     monteCarlo();
     checkFidelity();
 
-    writeFileLine(logfile,name+" constructed");
+    writeFileLine(logfile,name+" constructed with "+to_string(mcProposedMoves)+" proposed mc moves with "+to_string(mcAcceptedMoves)+" accepted");
+    if(localGeomOpt) writeFileLine(logfile,to_string(geomOptRejectCount)+" moves rejected due to unresolved geometry optimisation");
     if(consistent) writeFileLine(logfile,name+" checked for consistency and passed");
     else writeFileLine(logfile,name+" failed consistency test");
     if(mcTargetReached) writeFileLine(logfile, name+" targets met in "+to_string(mcProposedMoves)+" monte carlo moves");
@@ -440,7 +441,8 @@ void Network::monteCarlo() {
 
     //mc variables
     vector<int> switchTriangles(4); //nodes making triangles to switch
-
+    mcAcceptedMoves=0; //counter for accepted moves
+    if(localGeomOpt) geomOptRejectCount=0; //counter if rejection due to edge intersection
     mcTargetReached=false;
     mcProposedMoves=mcMaxMoves; //if target is not met will have max mc moves
     if(periodic){
@@ -747,6 +749,7 @@ bool Network::acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int>
             nodes[switchTriangles[1]].makeConnection(switchTriangles[0]);
             nodes[switchTriangles[2]].breakConnection(switchTriangles[3]);
             nodes[switchTriangles[3]].breakConnection(switchTriangles[2]);
+            geomOptRejectCount=++geomOptRejectCount;
             return false;
         }
     }
@@ -756,6 +759,7 @@ bool Network::acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int>
     pMatrix=trialPMat;
     mcEnergy=trialMcEnergy;
     aboavWeaireParams=trialAwParams;
+    mcAcceptedMoves=++mcAcceptedMoves;
 
     cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
 
@@ -781,6 +785,7 @@ bool Network::acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int
             nodes[switchTriangles[1]].makeConnection(switchTriangles[0]);
             nodes[switchTriangles[2]].breakConnection(switchTriangles[3]);
             nodes[switchTriangles[3]].breakConnection(switchTriangles[2]);
+            geomOptRejectCount=++geomOptRejectCount;
             return false;
         }
     }
@@ -790,6 +795,7 @@ bool Network::acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int
     pMatrix=trialPMat;
     mcEnergy=trialMcEnergy;
     aboavWeaireParams=trialAwParams;
+    mcAcceptedMoves=++mcAcceptedMoves;
 
     cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
     if(mcEnergy<=mcConvergence) return true;
