@@ -45,13 +45,15 @@ void Network::setMonteCarlo(int seed, double t, int moves, double conv, double a
     return;
 }
 
-void Network::setAnalysis(bool perVis, bool rdf, double rdfBw, double rdfExt) {
+void Network::setAnalysis(bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt){
     //specify analysis to perform
     if(periodic) periodicVisualisation=perVis;
     else periodicVisualisation=false;
     spatialRdf=rdf;
     spatialRdfBinwidth=rdfBw;
     spatialRdfExtent=rdfExt;
+    topoRdf=tRdf;
+    topoRdfExtent=tRdfExt;
     return;
 }
 
@@ -1320,7 +1322,7 @@ void Network::analyse(ofstream &logfile) {
 
     //optional analysis
     if(periodic && spatialRdf) analysePartialSpatialRdfs();
-
+    if(periodic && topoRdf) analysePartialTopologicalRdfs();
 
     return;
 }
@@ -1394,6 +1396,47 @@ void Network::analysePartialSpatialRdfs() {
     return;
 }
 
+void Network::analysePartialTopologicalRdfs() {
+    //calculate partial topological rdfs for each ring size node in dual real space ~com of ring
+
+    //set up rdfs;
+    topoRdfExtent=++topoRdfExtent; //increment to make inclusive of size in input file
+    topoRdfShellSizes.resize(nRingSizes, (vector<int> (int(topoRdfExtent), 0)));
+    topoPartialRdfs.clear();
+    for(int i=minRingSize; i<minRingSize+nRingSizes; ++i){
+        for(int j=minRingSize; j<minRingSize+nRingSizes; ++j){
+            topoPartialRdfs.push_back(Rdf(1.0,topoRdfExtent,to_string(i)+"-"+to_string(j))); //bin size 1 as incremental in discrete shells
+        }
+    }
+
+    //construct rdfs
+    int sizeIndexI, sizeIndexJ;
+    vector<int> shell0, shell1, shell2; //prev, current, next shell
+    for(int i=0; i<nNodes; ++i){//loop over all nodes
+        shell0.clear();
+        shell1.clear();
+        shell1.push_back(i);
+        sizeIndexI=nodes[i].sizeIndex;
+        //add self terms for "shell 0"
+        topoRdfShellSizes[sizeIndexI][0]=++topoRdfShellSizes[sizeIndexI][0];
+        topoPartialRdfs[sizeIndexI*nRingSizes+sizeIndexI].addValue(0);
+        shell2=nextTopologicalShell(shell1,shell0);
+        for(int shell=1; shell<topoRdfExtent; ++shell){//loop over all shells (excluding incremented as will not be included in rdf)
+            shell2=nextTopologicalShell(shell1,shell0);
+            topoRdfShellSizes[sizeIndexI][shell]=topoRdfShellSizes[sizeIndexI][shell]+shell2.size(); //increase number of members in shell by size of shell
+            for(int j=0; j<shell2.size(); ++j){//add to histogram
+                sizeIndexJ=nodes[shell2[j]].sizeIndex;
+                topoPartialRdfs[sizeIndexI*nRingSizes+sizeIndexJ].addValue(shell);
+            }
+            shell0=shell1;
+            shell1=shell2;
+        }
+    }
+
+    return;
+}
+
+
 //###### Write out ######
 
 void Network::write() {
@@ -1405,6 +1448,7 @@ void Network::write() {
     writeRingStatistics();
     writeAboavWeaire();
     if(periodic && spatialRdf) writeSpatialPartialRdfs();
+    if(periodic && topoRdf) writeTopoPartialRdfs();
 
     return;
 }
@@ -1562,6 +1606,23 @@ void Network::writeSpatialPartialRdfs() {
     for(int i=0; i<nRingSizes*nRingSizes; ++i){
         writeFileLine(rdfOutputFile,"Non-normalised partial rdf "+spatialPartialRdfs[i].id);
         writeFileColVector(rdfOutputFile,spatialPartialRdfs[i].vectorHistogram());
+    }
+    rdfOutputFile.close();
+    return;
+}
+
+void Network::writeTopoPartialRdfs() {
+    //write out partial rdfs to single file
+
+    string rdfOutputFileName=outPrefix+"analysis_topo_rdfs.out";
+    ofstream rdfOutputFile(rdfOutputFileName, ios::in|ios::trunc);
+    for(int i=0; i<nRingSizes; ++i){
+            writeFileLine(rdfOutputFile,"Topological shell sizes for central node size: "+to_string(minRingSize+i));
+            writeFileColVector(rdfOutputFile,topoRdfShellSizes[i]);
+    }
+    for(int i=0; i<nRingSizes*nRingSizes; ++i){
+        writeFileLine(rdfOutputFile,"Non-normalised partial topo rdf "+topoPartialRdfs[i].id);
+        writeFileColVector(rdfOutputFile,topoPartialRdfs[i].vectorHistogram());
     }
     rdfOutputFile.close();
     return;

@@ -415,8 +415,8 @@ Crd2d HarmonicMinimiser::harmonicForcePBC(Crd2d &c1, Crd2d &c2, double &r0, doub
     double fMag, r; //magnitude of force, distance between points
     fDir.x=c2.x-c1.x;
     fDir.y=c2.y-c1.y;
-    fDir.x=fDir.x-pbcX*round(fDir.x*pbcRX); //apply pbc
-    fDir.y=fDir.y-pbcY*round(fDir.y*pbcRY); //apply pbc
+    fDir.x=fDir.x-pbcX*round(fDir.x*pbcRX); //apply mic
+    fDir.y=fDir.y-pbcY*round(fDir.y*pbcRY); //apply mic
     r=sqrt(fDir.x*fDir.x+fDir.y*fDir.y);
     fMag=k*(r-r0)/r; //divide by r to cancel length built into fDir
     f.x=-fMag*fDir.x;
@@ -483,8 +483,8 @@ bool HarmonicMinimiser::checkIntersectionsPBC() {
 void HarmonicMinimiser::wrapAroundCoordinates() {
     //apply periodic boundary conditions to coordinates
     for(int i=0; i<nPnts; ++i){
-        coordinates[i].x=coordinates[i].x-pbcX*round(coordinates[i].x*pbcRX);
-        coordinates[i].y=coordinates[i].y-pbcY*round(coordinates[i].y*pbcRY);
+        coordinates[i].x=coordinates[i].x-pbcX*floor(coordinates[i].x*pbcRX);
+        coordinates[i].y=coordinates[i].y-pbcY*floor(coordinates[i].y*pbcRY);
     }
     return;
 }
@@ -571,9 +571,6 @@ bool HarmonicMinimiser::moveIntersectingPointsPBC(vector<int> &uniquePoints, Pai
         direction.invert();
         coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x+direction.x;
         coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y+direction.y;
-        //wrap around for good measure
-        coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x-pbcX*round(coordinates[pointsAboveX[i]].x*pbcRX);
-        coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y-pbcY*round(coordinates[pointsAboveX[i]].y*pbcRY);
     }
 
     //check if successful and if not revert and move points below x to above x
@@ -589,9 +586,6 @@ bool HarmonicMinimiser::moveIntersectingPointsPBC(vector<int> &uniquePoints, Pai
         direction.invert();
         coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x+direction.x;
         coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y+direction.y;
-        //wrap around for good measure
-        coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x-pbcX*round(coordinates[pointsBelowX[i]].x*pbcRX);
-        coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y-pbcY*round(coordinates[pointsBelowX[i]].y*pbcRY);
     }
 
     //check if successful and if not revert and try moving slightly in x-direction
@@ -611,9 +605,6 @@ bool HarmonicMinimiser::moveIntersectingPointsPBC(vector<int> &uniquePoints, Pai
         direction.invert();
         coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x+direction.x-xAxis.x;
         coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y+direction.y-xAxis.y;
-        //wrap around for good measure
-        coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x-pbcX*round(coordinates[pointsAboveX[i]].x*pbcRX);
-        coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y-pbcY*round(coordinates[pointsAboveX[i]].y*pbcRY);
     }
     //increment along in x direction
     for(int j=0; j<=20; ++j){
@@ -622,9 +613,6 @@ bool HarmonicMinimiser::moveIntersectingPointsPBC(vector<int> &uniquePoints, Pai
         for(int i=0; i<pointsAboveX.size();++i){
             coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x+directionInc.x;
             coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y+directionInc.y;
-            //wrap around for good measure
-            coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x-pbcX*round(coordinates[pointsAboveX[i]].x*pbcRX);
-            coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y-pbcY*round(coordinates[pointsAboveX[i]].y*pbcRY);
         }
     }
 
@@ -639,9 +627,6 @@ bool HarmonicMinimiser::moveIntersectingPointsPBC(vector<int> &uniquePoints, Pai
         direction.invert();
         coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x+direction.x-xAxis.x;
         coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y+direction.y-xAxis.y;
-        //wrap around for good measure
-        coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x-pbcX*round(coordinates[pointsBelowX[i]].x*pbcRX);
-        coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y-pbcY*round(coordinates[pointsBelowX[i]].y*pbcRY);
     }
     //increment along in x direction
     for(int j=0; j<=20; ++j){
@@ -650,9 +635,6 @@ bool HarmonicMinimiser::moveIntersectingPointsPBC(vector<int> &uniquePoints, Pai
         for(int i=0; i<pointsBelowX.size();++i){
             coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x+directionInc.x;
             coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y+directionInc.y;
-            //wrap around for good measure
-            coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x-pbcX*round(coordinates[pointsBelowX[i]].x*pbcRX);
-            coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y-pbcY*round(coordinates[pointsBelowX[i]].y*pbcRY);
         }
     }
 

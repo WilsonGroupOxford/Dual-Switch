@@ -179,8 +179,8 @@ Crd2d minimumImageCrd(Crd2d &c1, Crd2d &c2, double &pbcX, double &pbcY, double &
 }
 
 void applyPeriodicBoundary(Crd2d &c1, double &pbcX, double &pbcY, double &rPbcX, double &rPbcY){
-    c1.x=c1.x-pbcX*round(c1.x*rPbcX);
-    c1.y=c1.y-pbcY*round(c1.y*rPbcY);
+    c1.x=c1.x-pbcX*floor(c1.x*rPbcX);
+    c1.y=c1.y-pbcY*floor(c1.y*rPbcY);
     return;
 }
 

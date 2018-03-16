@@ -37,8 +37,8 @@ private:
     double mcTemperature, mcConvergence, mcAlphaScaleFactor; //temperature, properties convergence criteria, scale factor for energy functional
 
     //Analysis variables
-    bool periodicVisualisation, spatialRdf; //make periodic image, spatial partial rdfs
-    double spatialRdfBinwidth, spatialRdfExtent; //size of bin rdf, max distance for rdf
+    bool periodicVisualisation, spatialRdf, topoRdf; //make periodic image, spatial partial rdfs, topological rdfs
+    double spatialRdfBinwidth, spatialRdfExtent, topoRdfExtent; //size of bin rdf, max distance for rdf
 
     //###### Construction variables ######
 
@@ -113,11 +113,14 @@ private:
     vector< vector<double> > piMatrix; //normalised p matrix
     vector<double> spatialRdfDensities; //density of nodes
     vector<Rdf> spatialPartialRdfs; //rdfs for each rings size pair
+    vector< vector<int> > topoRdfShellSizes; //number of rings in each shell for each ring size
+    vector<Rdf> topoPartialRdfs; //rdfs for each ring size pair
 
     //###### Analysis functions ######
     void analyseRingStatistics(); //calculate ring statistics and normalise pi matrix
     void analyseAboavWeaire(); //calculate aboav-weaire parameters
     void analysePartialSpatialRdfs(); //calculate partial rdfs for each ring size
+    void analysePartialTopologicalRdfs(); //calculate partial topological rdfs for each ring size
 
     //###### Write functions ######
     void writeDual(); //write out dual network
@@ -125,6 +128,7 @@ private:
     void writeRingStatistics(); //write out ring statistics
     void writeAboavWeaire(); //write out aboav weaire parameters
     void writeSpatialPartialRdfs(); //write out partial rdfs
+    void writeTopoPartialRdfs(); //write out partial rdfs
 
 public:
     void setIO(string in, string out); //set input/output properties
@@ -132,7 +136,7 @@ public:
     void setPotential(double sep, double k, bool local, int localMaxIt, double localCC,
                       bool global, int globalMaxIt, double globalCC, double lineInc); //set parameters for potential model
     void setMonteCarlo(int seed, double t, int moves, double conv, double asf); //set monte carlo limits
-    void setAnalysis(bool perVis, bool rdf, double rdfBw, double rdfExt); //set analysis tools
+    void setAnalysis(bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt); //set analysis tools
     bool getConsistency(); //get whether network constructed is consistent
     bool getTargetStatus(); //get whether target is met
     bool getIntersectionStatus(); //get whether has intersecting edges in dual

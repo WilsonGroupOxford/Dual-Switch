@@ -102,6 +102,7 @@ vector<int> Rdf::vectorHistogram() {
 
 void Rdf::print() {
     //write to screen
+    cout<<id<<endl;
     for(int i=0; i<nBins; ++i) cout<<histogram[i]<<endl;
     return;
 }
