@@ -63,3 +63,45 @@ Ring::Ring(int s, vector<int> c, int d) {
     chain[size]=c[0];
     return;
 }
+
+Rdf::Rdf() {
+    //default constructor
+    id="None";
+    binwidth=0.1;
+    extent=10.0;
+    rBinwidth=1.0/binwidth;
+    nBins=floor(extent*rBinwidth);
+    histogram=new int[nBins]();
+    return;
+}
+
+Rdf::Rdf(double bw, double ext, string name) {
+    //initialise with bin widths and extent
+    id=name;
+    binwidth=bw;
+    extent=ext;
+    rBinwidth=1.0/binwidth;
+    nBins=int(floor(extent*rBinwidth));
+    histogram=new int[nBins]();
+    return;
+}
+
+void Rdf::addValue(double value) {
+    //add value to histogram
+    int bin=int(floor(value*rBinwidth));
+    if(bin<nBins) histogram[bin]=++histogram[bin];
+    return;
+}
+
+vector<int> Rdf::vectorHistogram() {
+    //return vector form of histogram
+    vector<int> vecHistogram(nBins);
+    for(int i=0; i<nBins; ++i) vecHistogram[i]=histogram[i];
+    return vecHistogram;
+}
+
+void Rdf::print() {
+    //write to screen
+    for(int i=0; i<nBins; ++i) cout<<histogram[i]<<endl;
+    return;
+}

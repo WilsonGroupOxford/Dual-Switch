@@ -45,10 +45,13 @@ void Network::setMonteCarlo(int seed, double t, int moves, double conv, double a
     return;
 }
 
-void Network::setAnalysis(bool perVis) {
+void Network::setAnalysis(bool perVis, bool rdf, double rdfBw, double rdfExt) {
     //specify analysis to perform
     if(periodic) periodicVisualisation=perVis;
     else periodicVisualisation=false;
+    spatialRdf=rdf;
+    spatialRdfBinwidth=rdfBw;
+    spatialRdfExtent=rdfExt;
     return;
 }
 
@@ -1313,6 +1316,10 @@ void Network::analyse(ofstream &logfile) {
 
     //unoptional analysis
     analyseRingStatistics();
+    analyseAboavWeaire();
+
+    //optional analysis
+    if(periodic && spatialRdf) analysePartialSpatialRdfs();
 
 
     return;
@@ -1340,6 +1347,53 @@ void Network::analyseRingStatistics() {
     return;
 }
 
+void Network::analyseAboavWeaire() {
+    //get aboav weaire parameters - will be the same as calculated in the monte carlo
+    aboavWeaireParams=calculateAboavWeaireFit(pVector,pMatrix);
+    return;
+}
+
+void Network::analysePartialSpatialRdfs() {
+    //calculate partial rdfs for each ring size node in dual real space ~com of ring
+
+    //get densities of each node
+    spatialRdfDensities.resize(nRingSizes);
+    for(int i=0; i<nRingSizes; ++i) spatialRdfDensities[i]=pVector[i]/(periodicBoxX*periodicBoxY);
+
+    //make sure maximum extent is within bounds of network (L/2)
+    double maxExtent;
+    if(periodicBoxX<periodicBoxY) maxExtent=0.5*periodicBoxX;
+    else maxExtent=0.5*periodicBoxY;
+    if(spatialRdfExtent<maxExtent) maxExtent=spatialRdfExtent;
+
+    //set up rdfs;
+    spatialPartialRdfs.clear(); //set up rdfs for each ring size pair
+    for(int i=minRingSize; i<minRingSize+nRingSizes; ++i){
+        for(int j=minRingSize; j<minRingSize+nRingSizes; ++j){
+            spatialPartialRdfs.push_back(Rdf(spatialRdfBinwidth,spatialRdfExtent,to_string(i)+"-"+to_string(j)));
+        }
+    }
+
+    //loop over all nodes pairs and add to rdf
+    int sizeIndexI, sizeIndexJ, rdfIndexIJ, rdfIndexJI; //size indices and rdfs to add to
+    Vec2d vec;
+    double d; //distance between points
+    for(int i=0; i<nNodes-1; ++i){
+        sizeIndexI=nodes[i].sizeIndex;
+        for(int j=i+1; j<nNodes; ++j){
+            sizeIndexJ=nodes[j].sizeIndex;
+            vec=Vec2d(nodes[i].coordinate,nodes[j].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+            d=vec.length();
+            rdfIndexIJ=sizeIndexI*nRingSizes+sizeIndexJ;
+            rdfIndexJI=sizeIndexJ*nRingSizes+sizeIndexI;
+            spatialPartialRdfs[rdfIndexIJ].addValue(d);
+            spatialPartialRdfs[rdfIndexJI].addValue(d);
+        }
+    }
+
+    return;
+}
+
 //###### Write out ######
 
 void Network::write() {
@@ -1348,8 +1402,9 @@ void Network::write() {
     writeDual();
 
     if(periodicVisualisation) writePeriodicNetwork();
-
     writeRingStatistics();
+    writeAboavWeaire();
+    if(periodic && spatialRdf) writeSpatialPartialRdfs();
 
     return;
 }
@@ -1481,5 +1536,33 @@ void Network::writeRingStatistics() {
     writeFileMatrix(piOutputFile,piMatrix);
     piOutputFile.close();
 
+    return;
+}
+
+void Network::writeAboavWeaire() {
+    //write alpha, mu and rsq
+    string awOutputFileName=outPrefix+"analysis_aw.out";
+    ofstream awOutputFile(awOutputFileName, ios::in|ios::trunc);
+    for(int i=0; i<3; ++i) writeFileValue(awOutputFile,aboavWeaireParams[i]);
+    awOutputFile.close();
+    return;
+}
+
+void Network::writeSpatialPartialRdfs() {
+    //write out partial rdfs to single file
+
+    string rdfOutputFileName=outPrefix+"analysis_spatial_rdfs.out";
+    ofstream rdfOutputFile(rdfOutputFileName, ios::in|ios::trunc);
+    writeFileLine(rdfOutputFile,"Partial RDF Analysis, bin width, nBins, densities, N and ideal distances");
+    writeFileValue(rdfOutputFile,spatialRdfBinwidth);
+    writeFileLine(rdfOutputFile,int(floor(spatialRdfExtent/spatialRdfBinwidth)));
+    writeFileRowVector(rdfOutputFile,spatialRdfDensities);
+    writeFileRowVector(rdfOutputFile,pVector);
+    writeFileMatrix(rdfOutputFile,harmonicR0Matrix);
+    for(int i=0; i<nRingSizes*nRingSizes; ++i){
+        writeFileLine(rdfOutputFile,"Non-normalised partial rdf "+spatialPartialRdfs[i].id);
+        writeFileColVector(rdfOutputFile,spatialPartialRdfs[i].vectorHistogram());
+    }
+    rdfOutputFile.close();
     return;
 }

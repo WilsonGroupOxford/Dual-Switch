@@ -32,7 +32,7 @@ private:
     //Analysis
     bool periodicVis, spatialRdf, topoRdf; //periodic visualisation, spatial partial rdfs, topological rdfs
     int maxTopoShells; //shells for topo rdf
-    double spatialRdfBinWidth; //histogram bin width
+    double spatialRdfBinWidth, spatialRdfExtent; //histogram bin width and distance
 
     //Logfile
     string logfileName; //name of log file

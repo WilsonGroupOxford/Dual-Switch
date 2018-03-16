@@ -35,7 +35,22 @@ struct Ring {
     Ring(int s, vector<int> c, int d=-1);
 };
 
+struct Rdf {
+    //radial distribution function
+    double binwidth, rBinwidth, extent; //histogram bin width and reciprocal, maximum spatial extent
+    int nBins; //number of bins
+    int *histogram; //unnormalised histogram
+    string id; //name
 
+    //constructors
+    Rdf();
+    Rdf(double bw, double ext, string name);
+
+    //histogram tools
+    void addValue(double value);
+    vector<int> vectorHistogram();
+    void print(); //print out to screen
+};
 
 
 #endif //DUAL_SWITCH_NODE_H

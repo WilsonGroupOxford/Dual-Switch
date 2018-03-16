@@ -71,8 +71,6 @@ string DoublePair::getID() {
     return "#"+to_string(a)+"#"+to_string(b)+"#"+to_string(c)+"#"+to_string(d);
 }
 
-
-
 Vec2d::Vec2d() {
     //initialise to null
     x=0.0;
