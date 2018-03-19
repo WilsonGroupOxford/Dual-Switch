@@ -9,26 +9,41 @@ void Simulation::run() {
     //perform network generation and analysis for the given random seeds
     writeFileLine(logfile,"Network Generation and Analysis");
     writeFileDashes(logfile);
-    networkConsistent.clear();
-    networkTargetsReached.clear();
+    ofstream seedStatusFile(outPrefix+"_"+to_string(randomSeedLimits[0])+"_"+to_string(randomSeedLimits[1])+"_seed_status.out",ios::in|ios::trunc); //initialise status file
+    writeFileLine(seedStatusFile,"seed           consistent     target         intersection free");
+    vector<int> seedStatus(4); //record whether network consistent, met target and is intersection free
+    ofstream timingFile(outPrefix+"_timing.out",ios::in|ios::trunc); //initialise timing file
+    writeFileLine(timingFile,"seed    minutes    seconds");
+    chrono::high_resolution_clock::time_point timeBegin, timeEnd; //time points for each seed
+    vector<int> seedTime(3); //time to complete each seed in minutes and seconds
     for(int seed=randomSeedLimits[0]; seed<=randomSeedLimits[1]; ++seed){
-        cout<<seed<<endl;
-
+        timeBegin=chrono::high_resolution_clock::now();
+        cout<<"Seed "<<seed<<endl;
         Network network;
         initialiseNetwork(network,seed);
         network.construct(logfile);
 
-        networkConsistent.push_back(network.getConsistency());
-        networkTargetsReached.push_back(network.getConsistency());
-        networkIntersectionFree.push_back(network.getIntersectionStatus());
+        seedStatus[0]=seed;
+        seedStatus[1]=network.getConsistency();
+        seedStatus[2]=network.getTargetStatus();
+        seedStatus[3]=network.getIntersectionStatus();
 
-        if(networkConsistent.rbegin()[0]){
+        if(seedStatus[1]==1){//continue if consistent
             network.analyse(logfile);
             network.write();
         }
 
+        writeFileRowVector(seedStatusFile, seedStatus);
 
+        timeEnd=chrono::high_resolution_clock::now();
+        int time=chrono::duration_cast<chrono::seconds>(timeEnd-timeBegin).count();
+        seedTime[0]=seed;
+        seedTime[1]=time/60;
+        seedTime[2]=time-seedTime[1]*60;
+        writeFileRowVector(timingFile,seedTime);
     }
+    seedStatusFile.close();
+    timingFile.close();
     logfile.close();
 }
 

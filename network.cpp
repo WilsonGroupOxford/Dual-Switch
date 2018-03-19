@@ -91,7 +91,7 @@ void Network::construct(ofstream &logfile) {
     checkFidelity();
 
     writeFileLine(logfile,name+" constructed with "+to_string(mcProposedMoves)+" proposed mc moves with "+to_string(mcAcceptedMoves)+" accepted");
-    if(localGeomOpt) writeFileLine(logfile,to_string(geomOptRejectCount)+" moves rejected due to unresolved geometry optimisation");
+    if(localGeomOpt) writeFileLine(logfile,name+" had "+to_string(geomOptRejectCount)+" moves rejected due to unresolved geometry optimisation");
     if(consistent) writeFileLine(logfile,name+" checked for consistency and passed");
     else writeFileLine(logfile,name+" failed consistency test");
     if(mcTargetReached) writeFileLine(logfile, name+" targets met in "+to_string(mcProposedMoves)+" monte carlo moves");
@@ -460,6 +460,10 @@ void Network::monteCarlo() {
                 mcProposedMoves=move+1;
                 break;
             }
+            if((move+1)%1000000==0){
+                checkFidelity();
+                if (!consistent) break;
+            }
         }
     }
     else{
@@ -477,9 +481,12 @@ void Network::monteCarlo() {
                 mcProposedMoves=move+1;
                 break;
             }
+            if((move+1)%1000000==0){
+                checkFidelity();
+                if (!consistent) break;
+            }
         }
     }
-
 
     return;
 }
@@ -761,7 +768,7 @@ bool Network::acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int>
     aboavWeaireParams=trialAwParams;
     mcAcceptedMoves=++mcAcceptedMoves;
 
-    cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
+//    cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
 
     if(mcEnergy<=mcConvergence) return true;
     else return false;
@@ -797,7 +804,7 @@ bool Network::acceptDualSwitchAperiodic(vector<int> &switchTriangles, vector<int
     aboavWeaireParams=trialAwParams;
     mcAcceptedMoves=++mcAcceptedMoves;
 
-    cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
+//    cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
     if(mcEnergy<=mcConvergence) return true;
     else return false;
 }
@@ -1330,6 +1337,9 @@ void Network::analyse(ofstream &logfile) {
     if(periodic && spatialRdf) analysePartialSpatialRdfs();
     if(periodic && topoRdf) analysePartialTopologicalRdfs();
 
+//    analyseAssortativity();
+
+    writeFileLine(logfile,name+" analysed");
     return;
 }
 
@@ -1348,7 +1358,8 @@ void Network::analyseRingStatistics() {
     piMatrix.clear();
     piMatrix.resize(nRingSizes,(vector<double> (nRingSizes)));
     for(int i=0; i<nRingSizes; ++i){
-        normalisation=1.0/accumulate(pMatrix[i].begin(), pMatrix[i].end(), 0.0);
+        normalisation=accumulate(pMatrix[i].begin(), pMatrix[i].end(), 0.0);
+        if(normalisation>0.0) normalisation=1.0/normalisation;
         for(int j=0; j<nRingSizes; ++j) piMatrix[i][j]=pMatrix[i][j]*normalisation;
     }
 
@@ -1442,6 +1453,59 @@ void Network::analysePartialTopologicalRdfs() {
     return;
 }
 
+void Network::analyseAssortativity() {
+    //****experimental calculation of assortativity*****
+
+    double numerator=0.0;
+    int ii, jj;
+    for(int i=0; i<nRingSizes; ++i){
+        ii=i+minRingSize;
+        for(int j=0; j<nRingSizes; ++j){
+            jj=j+minRingSize;
+            numerator=numerator+(ii-1)*(jj-1)*ii*ringStatistics[i]*(piMatrix[i][j]-jj*ringStatistics[j]/6.0);
+        }
+    }
+    numerator=numerator/6.0;
+
+    double denominator=0.0;
+    double n3=0.0, n2=0.0;
+    for(int i=0; i<nRingSizes; ++i){
+        ii=i+minRingSize;
+        n3=n3+pow(ii,3)*ringStatistics[i];
+        n2=n2+pow(ii,2)*ringStatistics[i];
+    }
+    denominator=n3/6.0-n2*n2/36.0;
+
+    double theory=0.0;
+    theory=(n2-36.0)*(2.0-aboavWeaireParams[0])+36.0-n2*n2/36.0;
+    theory=theory/(n3/6.0-n2*n2/36.0);
+
+    int indexI, indexJ;
+    double sum1=0.0, sum2=0.0, sum3=0.0, n=0.0;
+    for(int i=0; i<nNodes; ++i){
+        indexI=i;
+        for(int j=0; j<nodes[i].size; ++j){
+            indexJ=nodes[i].connections[j];
+            if(indexI<indexJ){//prevent double counting
+                ii=nodes[indexI].size;
+                jj=nodes[indexJ].size;
+                sum1=sum1+ii*jj;
+                sum2=sum2+ii+jj;
+                sum3=sum3+ii*ii+jj*jj;
+                n=n+1.0;
+            }
+        }
+    }
+    cout<<sum1<<" "<<sum2<<" "<<sum3<<endl;
+    sum1=sum1/n;
+    sum2=pow((0.5*sum2/n),2);
+    sum3=0.5*sum3/n;
+    cout<<sum1<<" "<<sum2<<" "<<sum3<<endl;
+    double paper=(sum1-sum2)/(sum3-sum2);
+
+    cout<<numerator/denominator<<" "<<theory<<" "<<paper<<endl;
+    return;
+}
 
 //###### Write out ######
 
@@ -1451,6 +1515,7 @@ void Network::write() {
     writeDual();
 
     if(periodicVisualisation) writePeriodicNetwork();
+    if(globalGeomOpt) writeGeometryOptimisationEnergy();
     writeRingStatistics();
     writeAboavWeaire();
     if(periodic && spatialRdf) writeSpatialPartialRdfs();
@@ -1569,6 +1634,17 @@ void Network::writePeriodicNetwork() {
     }
     cnxOutputFile.close();
 
+
+    return;
+}
+
+void Network::writeGeometryOptimisationEnergy() {
+    //write out final energy of geometry optimisation
+
+    string geomOutputFileName=outPrefix+"analysis_geometry_opt.out";
+    ofstream geomOutputFile(geomOutputFileName, ios::in|ios::trunc);
+    writeFileValue(geomOutputFile, geomOptEnergy);
+    geomOutputFile.close();
 
     return;
 }

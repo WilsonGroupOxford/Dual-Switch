@@ -3,6 +3,7 @@
 #ifndef DUAL_SWITCH_SIMULATION_H
 #define DUAL_SWITCH_SIMULATION_H
 
+#include <chrono>
 #include "customIO.h"
 #include "network.h"
 
@@ -35,9 +36,6 @@ private:
 
     //Logfile
     string logfileName; //name of log file
-
-    //Calculation status
-    vector<bool> networkConsistent, networkTargetsReached, networkIntersectionFree;
 
     void readInputFile(); //read in simulation parameters
     void initialiseNetwork(Network &network, int seed); //set up network with input properties and given random seed

@@ -7,14 +7,14 @@ Network Properties
 0           use existing network (P)
 100 100     starting bulk hexagonal lattice dimensions (even for periodic)
 4 10      ring size limits
--0.3       target alpha
+-0.3      target alpha
 0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics
 --------------------------------------
 Simulation Parameters
-0 0         random seed range (inclusive)
+0 1         random seed range (inclusive)
 0.0001      temperature
-100000        maximum proposed monte carlo moves
-0.0        energy convergence criteria
+10        maximum proposed monte carlo moves
+0.00001        energy convergence criteria
 10.0          alpha energy scaling factor
 --------------------------------------
 Potential Model and Geometry Optimisation
@@ -24,16 +24,16 @@ Potential Model and Geometry Optimisation
 100         maximum iterations
 0.1         convergence criteria
 0.01        line search step size
-0           globally minimise after simulation end
-100       maximum iterations
+1           globally minimise after simulation end
+10       maximum iterations
 0.1         convergence criteria
 --------------------------------------
 Analysis Tools
 1           periodic visualisation
-1           partial spatial rdfs (P)
+0           partial spatial rdfs (P)
 3.00       partial rdf bin width
 20.0          partial rdf extent
-1           partial topological rdfs (P)
+0           partial topological rdfs (P)
 5.0           number of topological shells to include
 --------------------------------------
 

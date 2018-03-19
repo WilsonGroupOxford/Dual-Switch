@@ -4,6 +4,7 @@
 #define DUAL_SWITCH_NETWORK_H
 
 #include <map>
+#include <random>
 #include "customIO.h"
 #include "node.h"
 #include "vectorManip.h"
@@ -120,10 +121,12 @@ private:
     void analyseAboavWeaire(); //calculate aboav-weaire parameters
     void analysePartialSpatialRdfs(); //calculate partial rdfs for each ring size
     void analysePartialTopologicalRdfs(); //calculate partial topological rdfs for each ring size
+    void analyseAssortativity(); //calculate assortativity
 
     //###### Write functions ######
     void writeDual(); //write out dual network
     void writePeriodicNetwork(); //calculate and write out network for periodic visualisation
+    void writeGeometryOptimisationEnergy(); //write energy of system
     void writeRingStatistics(); //write out ring statistics
     void writeAboavWeaire(); //write out aboav weaire parameters
     void writeSpatialPartialRdfs(); //write out partial rdfs
