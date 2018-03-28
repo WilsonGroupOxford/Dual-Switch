@@ -132,7 +132,8 @@ private:
     //###### Write functions ######
     void writeDual(); //write out dual network
     void writeAtomicNetwork(); //write out atomic network
-    void writePeriodicNetwork(); //calculate and write out network for periodic visualisation
+    void writePeriodicDualNetwork(); //calculate and write out network for periodic visualisation
+    void writePeriodicAtomicNetwork(vector<Node> &periodicNodes); //calculate and write out atomic network for visualisation
     void writeGeometryOptimisationEnergy(); //write energy of system
     void writeRingStatistics(); //write out ring statistics
     void writeAboavWeaire(); //write out aboav weaire parameters

@@ -20,7 +20,7 @@ def main():
     if(graph):
         graphCrds, graphRings, graphSizes, graphImage=readGraph(inPrefix,periodic)
         plotGraph(graphCrds,graphRings,graphSizes,graphImage,graphColours,fig,ax)
-        #setGraphAxesLimits(graphCrds,graphRings,graphImage,ax)
+        setGraphAxesLimits(graphCrds,graphRings,graphImage,ax)
     if(saveFig): savePlot(inPrefix)
     displayPlot()
     return
@@ -102,7 +102,7 @@ def readGraph(prefix,periodic):
     if(periodic):
         size=np.tile(size,9)
         image=np.genfromtxt(sizeFileName,usecols=1,dtype=int)
-    else: image=np.array([4]*len(cnxsList))
+    else: image=np.ones(len(cnxsList))
     return crds, cnxs, size, image
 
 def plotDual(crds,cnxs,ringSizes,edges,colourFlag,labelFlag,fig,ax):
@@ -120,17 +120,17 @@ def plotDual(crds,cnxs,ringSizes,edges,colourFlag,labelFlag,fig,ax):
     return
 
 def plotGraph(crds,rings,ringSizes,graphImage,colourFlag,fig,ax):
-    #colours=generateColours(ringSizes)
-    #polygonCmds=generatePolygonDrawingCommands(4,12);
-    #colourFilter=generateColourFilter(graphImage)
-    #nCrds=crds[:,0].size
-    plt.scatter(crds[:,0],crds[:,1],c='b',s=2,zorder=3)
-    #for i, ring in enumerate(rings):
-    #   ringCrds=np.array([crds[a] for a in ring])
-    #   ringCrds=np.append(ringCrds, [ringCrds[0]], axis=0)
-    #   path=Path(ringCrds, polygonCmds[ringSizes[i]-4])
-    #   patch = patches.PathPatch(path, facecolor=colours[i], lw=1, alpha=colourFilter[i])
-    #   ax.add_patch(patch)
+    colours=generateColours(ringSizes)
+    polygonCmds=generatePolygonDrawingCommands(4,12);
+    colourFilter=generateColourFilter(graphImage)
+    nCrds=crds[:,0].size
+    #plt.scatter(crds[:,0],crds[:,1],c='b',s=2,zorder=3)
+    for i, ring in enumerate(rings):
+       ringCrds=np.array([crds[a] for a in ring])
+       ringCrds=np.append(ringCrds, [ringCrds[0]], axis=0)
+       path=Path(ringCrds, polygonCmds[ringSizes[i]-4])
+       patch = patches.PathPatch(path, facecolor=colours[i], lw=1, alpha=colourFilter[i])
+       ax.add_patch(patch)
     return
 
 def setDualAxesLimits(crds,ax):
@@ -144,7 +144,7 @@ def setGraphAxesLimits(crds,rings,image,ax):
     n=len(rings)
     ringMask=np.zeros(n,dtype=bool)
     for i, im in enumerate(image):
-        if (im==4): ringMask[i]=1
+        if (im==1): ringMask[i]=1
     crdMask=np.zeros(crds[:,0].size,dtype=bool)
     for ring in rings[ringMask]:
         for crd in ring: crdMask[crd]=1
@@ -173,7 +173,7 @@ def generateColourFilter(image):
     n=image.size
     filter=np.ones(n,dtype=float)
     for i, im in enumerate(image):
-        if(im!=4): filter[i]=0.5
+        if(im!=1): filter[i]=0.5
     return filter
 
 def generatePolygonDrawingCommands(min, max):

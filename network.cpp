@@ -1011,7 +1011,6 @@ int Network::pickRandomConnection(int nCnxs) {
 void Network::findNodeRings() {
     //find rings of nodes in dual graph around each central node
 
-    vector<int> centralCnxs, outerCnxs; //cnxs surrounding central node and nodes in ring
     vector<int> ring; //ring around central node
     for(int i=0; i<nNodes; ++i){//loop over all nodes in graph not on edge
         if(!nodes[i].edge){
@@ -1580,9 +1579,6 @@ void Network::convertDualToAtomicNetwork() {
         }
     }
 
-
-
-
     return;
 }
 
@@ -1779,7 +1775,7 @@ void Network::write() {
     writeDual();
     if(convertToAtomic) writeAtomicNetwork();
 
-    if(periodicVisualisation) writePeriodicNetwork();
+    if(periodicVisualisation) writePeriodicDualNetwork();
     if(globalGeomOpt) writeGeometryOptimisationEnergy();
     writeRingStatistics();
     writeAboavWeaire();
@@ -1853,7 +1849,7 @@ void Network::writeAtomicNetwork() {
     return;
 }
 
-void Network::writePeriodicNetwork() {
+void Network::writePeriodicDualNetwork() {
     //only for visualisation, calculate periodic images of network for visualisation
 
     //set limits of visualisation region
@@ -1932,6 +1928,116 @@ void Network::writePeriodicNetwork() {
     }
     cnxOutputFile.close();
 
+    if(convertToAtomic) writePeriodicAtomicNetwork(periodicNodes);
+
+
+    return;
+}
+
+void Network::writePeriodicAtomicNetwork(vector<Node> &periodicNodes) {
+    //only for visualisation, calculate periodic images of network for visualisation
+
+    int nPeriodicNodes=periodicNodes.size();
+
+    //find periodic node rings, created from find node ring(s) functions
+    vector<Ring> periodicNodeRings; //periodic rings
+    for(int i=0; i<nPeriodicNodes; ++i){//find node rings
+        if(!periodicNodes[i].edge){
+
+            //find single node ring
+            int nSize=periodicNodes[i].size;
+            vector<int> ring(nSize); //ring around central node
+            vector<int> centralCnxs=periodicNodes[i].connections;
+            vector<int> outerCnxs;
+            ring[0]=centralCnxs[0]; //pick first connection as starting point
+            outerCnxs=periodicNodes[ring[0]].connections;
+            for(int j=0; j<outerCnxs.size(); ++j){//find second connection in ring
+                if(checkVectorForValue(centralCnxs,outerCnxs[j])){
+                    ring[1]=outerCnxs[j];
+                    break;
+                };
+            }
+            for(int j=2; j<nSize; ++j){//find remaining connections
+                outerCnxs=periodicNodes[ring[j-1]].connections;
+                removeValueFromVectorByRef(outerCnxs,ring[j-2]); //remove previous node in chain
+                for(int k=0; k<outerCnxs.size(); ++k){
+                    if(checkVectorForValue(centralCnxs,outerCnxs[k])) {
+                        ring[j] = outerCnxs[k];
+                        break;
+                    }
+                }
+            }
+
+            //add to vector
+            periodicNodeRings.push_back(Ring(periodicNodes[i].size,ring,i));
+        }
+    }
+
+    //make unique vertex list and vertex rings from node rings, taken from convert dual to atomic network
+    int nPeriodicRings=periodicNodeRings.size();
+    int nPeriodicVertices=0;
+    vector<Vertex> periodicVertices;
+    vector<Ring> periodicVertexRings;
+    periodicVertices.clear();
+    periodicVertexRings.clear();
+    Triangle nodeTriangle;
+    vector<int> ringPath;
+    string triangleID;
+    map<string,int> triangleVertexMap; //triangle id to vertex index map
+    for(int i=0; i<nPeriodicRings; ++i){//loop over node rings
+        ringPath.clear();
+        for(int j=0; j<periodicNodeRings[i].size; ++j){//loop over all node triangles (=vertices) in ring
+            nodeTriangle=Triangle(periodicNodeRings[i].id,periodicNodeRings[i].chain[j],periodicNodeRings[i].chain[j+1]);
+            nodeTriangle.sort();
+            triangleID=nodeTriangle.getID();
+            if(triangleVertexMap.count(triangleID)==0){//if vertex not already generated, make vertex
+                periodicVertices.push_back(Vertex(nodeTriangle.a, nodeTriangle.b, nodeTriangle.c));
+                triangleVertexMap[triangleID]=nPeriodicVertices;
+                nPeriodicVertices=++nPeriodicVertices;
+            }
+            ringPath.push_back(triangleVertexMap[triangleID]);
+        }
+        periodicVertexRings.push_back(Ring(ringPath.size(),ringPath,i)); //make vertex ring
+    }
+
+    //make vertex connections
+    for(int i=0; i<periodicVertexRings.size(); ++i){//triply degenerate but vertex only accepts addition if unique
+        for(int j=0; j<periodicVertexRings[i].size; ++j){
+            periodicVertices[periodicVertexRings[i].chain[j]].addConnection(periodicVertexRings[i].chain[j+1]);
+            periodicVertices[periodicVertexRings[i].chain[j+1]].addConnection(periodicVertexRings[i].chain[j]);
+        }
+    }
+
+    //make vertex coordinates
+    vector<Crd2d> nodeTriCrds(3);
+    for(int i=0; i<nPeriodicVertices; ++i){
+        for(int j=0; j<3; ++j) nodeTriCrds[j]=periodicNodes[periodicVertices[i].dualNodes[j]].coordinate;
+        periodicVertices[i].coordinate=crdCentreOfMass(nodeTriCrds);
+    }
+
+    //generate list of whether original or image
+    vector<int> imageList(nPeriodicRings,0);
+    for(int i=0; i<nRings; ++i) imageList[i]=1;
+
+    //write atomic coordinates
+    string crdOutputFileName=outPrefix+"graph_periodic_coordinates.out";
+    ofstream crdOutputFile(crdOutputFileName, ios::in|ios::trunc);
+    for(int i=0; i<nPeriodicVertices; ++i) writeFileCrd(crdOutputFile,periodicVertices[i].coordinate);
+    crdOutputFile.close();
+
+    string sizeOutputFileName=outPrefix+"graph_periodic_size.out";
+    ofstream sizeOutputFile(sizeOutputFileName, ios::in|ios::trunc);
+    for(int i=0; i<periodicVertexRings.size(); ++i){
+        writeFileLine(sizeOutputFile,periodicVertexRings[i].size,false);
+        writeFileLine(sizeOutputFile,"  ",false);
+        writeFileLine(sizeOutputFile,imageList[i]);
+    }
+    sizeOutputFile.close();
+
+    string ringOutputFileName=outPrefix+"graph_periodic_rings.out";
+    ofstream ringOutputFile(ringOutputFileName, ios::in|ios::trunc);
+    for(int i=0; i<periodicVertexRings.size(); ++i) writeFileRowVector(ringOutputFile,periodicVertexRings[i].path());
+    ringOutputFile.close();
 
     return;
 }
