@@ -71,6 +71,44 @@ string DoublePair::getID() {
     return "#"+to_string(a)+"#"+to_string(b)+"#"+to_string(c)+"#"+to_string(d);
 }
 
+Triangle::Triangle() {
+    a=0;
+    b=0;
+    c=0;
+    return;
+}
+
+void Triangle::sort() {
+    int d;
+    if(a>b){
+        d=a;
+        a=b;
+        b=d;
+    }
+    if(a>c){
+        d=a;
+        a=c;
+        c=d;
+    }
+    if(b>c){
+        d=b;
+        b=c;
+        c=d;
+    }
+    return;
+}
+
+string Triangle::getID() {
+    return "#"+to_string(a)+"#"+to_string(b)+"#"+to_string(c);
+}
+
+Triangle::Triangle(int aInit, int bInit, int cInit) {
+    a=aInit;
+    b=bInit;
+    c=cInit;
+    return;
+}
+
 Vec2d::Vec2d() {
     //initialise to null
     x=0.0;
@@ -182,6 +220,18 @@ void applyPeriodicBoundary(Crd2d &c1, double &pbcX, double &pbcY, double &rPbcX,
     c1.x=c1.x-pbcX*floor(c1.x*rPbcX);
     c1.y=c1.y-pbcY*floor(c1.y*rPbcY);
     return;
+}
+
+Crd2d crdCentreOfMass(vector<Crd2d> crds){
+    Crd2d com;
+    int n=crds.size();
+    for(int i=0; i<n; ++i){
+        com.x=com.x+crds[i].x;
+        com.y=com.y+crds[i].y;
+    }
+    com.x=com.x/n;
+    com.y=com.y/n;
+    return com;
 }
 
 //##### IMPLEMENTED USING COMPUTATIONAL GEOMETRY IN C #######

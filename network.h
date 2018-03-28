@@ -38,7 +38,7 @@ private:
     double mcTemperature, mcConvergence, mcAlphaScaleFactor; //temperature, properties convergence criteria, scale factor for energy functional
 
     //Analysis variables
-    bool periodicVisualisation, spatialRdf, topoRdf; //make periodic image, spatial partial rdfs, topological rdfs
+    bool convertToAtomic, periodicVisualisation, spatialRdf, topoRdf, assortativeMix; //convert dual to atomic network, make periodic image, spatial partial rdfs, topological rdfs, assortative mixing
     double spatialRdfBinwidth, spatialRdfExtent, topoRdfExtent; //size of bin rdf, max distance for rdf
 
     //###### Construction variables ######
@@ -88,6 +88,7 @@ private:
     void monteCarlo(); //main monte carlo process
     vector<int> pickRandomTrianglePairPeriodic(); //nodes to dual switch
     vector<int> pickRandomTrianglePairAperiodic(); //nodes to dual switch
+    vector<int> pickDefinedTrianglePair(int m); //nodes to dual switch - for development
     void calculateTrialPPeriodic(vector<int> &triangles, vector<int> &trialPVector, vector< vector<int> > &trialPMatrix); //calculate trial p vector and matrix
     void calculateTrialPAperiodic(vector<int> &triangles, vector<int> &trialPVector, vector< vector<int> > &trialPMatrix); //calculate trial p vector and matrix
     vector<double> calculateAboavWeaireFit(vector<int> &pVec, vector< vector<int> > &pMat); //calculate Aboav-Weaire parameters
@@ -109,14 +110,19 @@ private:
     void checkGeometry(); //check for node edge overlap
 
     //###### Analysis variables ######
+    int nVertices; //number of vertices of atomic graph
+    vector<Vertex> vertices; //vertices of atomic graph
+    vector<Ring> vertexRings; //rings of atoms
     vector<double> ringStatistics; //ring statistics of network
     vector< vector<double> > piMatrix; //normalised p matrix
     vector<double> spatialRdfDensities; //density of nodes
     vector<Rdf> spatialPartialRdfs; //rdfs for each rings size pair
     vector< vector<int> > topoRdfShellSizes; //number of rings in each shell for each ring size
     vector<Rdf> topoPartialRdfs; //rdfs for each ring size pair
+    vector<double> assortativeMixing; //pearson cc via two methods
 
     //###### Analysis functions ######
+    void convertDualToAtomicNetwork(); //triangulate nodes to get atomic network
     void analyseRingStatistics(); //calculate ring statistics and normalise pi matrix
     void analyseAboavWeaire(); //calculate aboav-weaire parameters
     void analysePartialSpatialRdfs(); //calculate partial rdfs for each ring size
@@ -125,12 +131,14 @@ private:
 
     //###### Write functions ######
     void writeDual(); //write out dual network
+    void writeAtomicNetwork(); //write out atomic network
     void writePeriodicNetwork(); //calculate and write out network for periodic visualisation
     void writeGeometryOptimisationEnergy(); //write energy of system
     void writeRingStatistics(); //write out ring statistics
     void writeAboavWeaire(); //write out aboav weaire parameters
     void writeSpatialPartialRdfs(); //write out partial rdfs
     void writeTopoPartialRdfs(); //write out partial rdfs
+    void writeAssortativeMixing(); //write out assortative pearson correlation
 
 public:
     void setIO(string in, string out); //set input/output properties
@@ -138,7 +146,7 @@ public:
     void setPotential(double sep, double k, bool local, int localMaxIt, double localCC,
                       bool global, int globalMaxIt, double globalCC, double lineInc); //set parameters for potential model
     void setMonteCarlo(int seed, double t, int moves, double conv, double asf); //set monte carlo limits
-    void setAnalysis(bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt); //set analysis tools
+    void setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt, bool aMix); //set analysis tools
     bool getConsistency(); //get whether network constructed is consistent
     bool getTargetStatus(); //get whether target is met
     bool getIntersectionStatus(); //get whether has intersecting edges in dual

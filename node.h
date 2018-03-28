@@ -25,6 +25,22 @@ struct Node {
     void breakConnection(int cnx); //break decrements size
 };
 
+struct Vertex {
+    //Vertex properties
+    int coordination; //number of connections - should be 3 unless on edge
+    Crd2d coordinate; //2d coordinate
+    int connections[3]; //to other vertices
+    int dualNodes[3]; //ids of nodes which make up vertex
+
+    //Constructors
+    Vertex();
+    Vertex(int node0, int node1, int node2); //set up with dual node indices
+
+    //Change connections
+    void addConnection(int cnx); //add connection and increase size
+
+};
+
 struct Ring {
     //Ring properties
     int size, id; //number of nodes in ring, id which could be a central node ref
@@ -33,6 +49,9 @@ struct Ring {
     //Constructors
     Ring();
     Ring(int s, vector<int> c, int d=-1);
+
+    //Ring path as vector
+    vector<int> path(); //return non-modulo chain as vector
 };
 
 struct Rdf {

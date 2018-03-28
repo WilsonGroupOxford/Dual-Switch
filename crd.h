@@ -26,13 +26,22 @@ struct Pair{
     Pair(int aInit, int bInit);
 };
 
-//2 dimensional integer pair
+//4 dimensional integer pair
 struct DoublePair{
     int a, b, c, d;
     DoublePair();
     DoublePair(int aInit, int bInit, int cInit, int dInit);
     void sort();
     bool checkPairs();
+    string getID();
+};
+
+//2 dimensional integer pair
+struct Triangle{
+    int a, b, c;
+    Triangle();
+    Triangle(int aInit, int bInit, int cInit);
+    void sort();
     string getID();
 };
 
@@ -65,7 +74,7 @@ Crd2d crdFromVectorAndCrd(Vec2d &v, Crd2d &c);
 Crd2d minimumImageCrd(Crd2d &c1, Crd2d &c2, double &pbcX, double &pbcY, double &rPbcX, double &rPbcY);
 void applyPeriodicBoundary(Crd2d &c1, double &pbcX, double &pbcY, double &rPbcX, double &rPbcY);
 double vectorDotProduct(Vec2d &v1, Vec2d &v2);
-
+Crd2d crdCentreOfMass(vector<Crd2d> crds);
 
 //computational geometry in c
 double signedAreaSqTriangle(Crd2d &a, Crd2d &b, Crd2d &c);

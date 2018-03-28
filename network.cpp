@@ -45,8 +45,9 @@ void Network::setMonteCarlo(int seed, double t, int moves, double conv, double a
     return;
 }
 
-void Network::setAnalysis(bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt){
+void Network::setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt, bool aMix){
     //specify analysis to perform
+    convertToAtomic=convert;
     if(periodic) periodicVisualisation=perVis;
     else periodicVisualisation=false;
     spatialRdf=rdf;
@@ -54,6 +55,7 @@ void Network::setAnalysis(bool perVis, bool rdf, double rdfBw, double rdfExt, bo
     spatialRdfExtent=rdfExt;
     topoRdf=tRdf;
     topoRdfExtent=tRdfExt;
+    assortativeMix=aMix;
     return;
 }
 
@@ -471,11 +473,17 @@ void Network::monteCarlo() {
             trialPVector=pVector;
             trialPMatrix=pMatrix;
             switchTriangles=pickRandomTrianglePairAperiodic();
+//            //***** HACKED FOR DEVELOPMENT ******
+//            switchTriangles=pickDefinedTrianglePair(move);
+//            //****** HACK END ******
             calculateTrialPAperiodic(switchTriangles, trialPVector, trialPMatrix);
             trialAwParameters=calculateAboavWeaireFit(trialPVector,trialPMatrix);
             trialMcEnergy=mcEnergyFunctional(trialAwParameters,trialPVector);
             testCounter=move;
             acceptTrialMove=evaluateMetropolisCondition(trialMcEnergy,mcEnergy);
+//            //****** HACK BEGIN ******
+//            acceptTrialMove=true;
+//            //******HACK END ******
             if(acceptTrialMove) mcTargetReached=acceptDualSwitchAperiodic(switchTriangles,trialPVector,trialPMatrix,trialMcEnergy,trialAwParameters);
             if(mcTargetReached){
                 mcProposedMoves=move+1;
@@ -556,6 +564,181 @@ vector<int> Network::pickRandomTrianglePairAperiodic() {
     trianglePair[2]=ref2;
     trianglePair[3]=ref3;
 
+    return trianglePair;
+}
+
+vector<int> Network::pickDefinedTrianglePair(int m) {
+    //**** FOR DEVELOPMENT, PICK TRIANGLE PAIR BASED ON MOVE ****
+    //**** NO CONSISTENCY CHECKING ****
+
+    int ref0, ref1, ref2, ref3;
+    vector<int> trianglePair(4);
+
+    bool picked=false;
+    vector<int> commonNodes; //shared nodes, should be two
+
+    int moveI=m/4, moveJ=m%4, moveK=m/16;
+    int moveStart;
+
+    if(moveI==0) moveStart=250;
+    else if(moveI==1) moveStart=251;
+    else if(moveI==2) moveStart=272;
+    else if(moveI==3) moveStart=184;
+    else if(moveI==4) moveStart=251;
+    else if(moveI==5) moveStart=253;
+    else if(moveI==6) moveStart=226;
+
+    if(moveI==0){
+        if(moveJ==0){
+            ref0=moveStart;
+            ref1=ref0-22;
+        }
+        else if(moveJ==1){
+            ref0=moveStart+1;
+            ref1=ref0-22;
+        }
+        else if(moveJ==2){
+            ref0=moveStart-23;
+            ref1=ref0-21;
+        }
+        else if(moveJ==3){
+            ref0=moveStart-22;
+            ref1=ref0-21;
+        }
+    }
+    if(moveI==1){
+        if(moveJ==0){
+            ref0=moveStart;
+            ref1=ref0-23;
+        }
+        else if(moveJ==1){
+            ref0=moveStart+1;
+            ref1=ref0-23;
+        }
+        else if(moveJ==2){
+            ref0=moveStart-24;
+            ref1=ref0-22;
+        }
+        else if(moveJ==3){
+            ref0=moveStart-23;
+            ref1=ref0-22;
+        }
+    }
+    if(moveI==2){
+        if(moveJ==0){
+            ref0=moveStart;
+            ref1=ref0-21;
+        }
+        else if(moveJ==1){
+            ref0=moveStart+1;
+            ref1=ref0-21;
+        }
+        else if(moveJ==2){
+            ref0=moveStart-23;
+            ref1=ref0-23;
+        }
+        else if(moveJ==3){
+            ref0=moveStart-22;
+            ref1=ref0-23;
+        }
+    }
+    if(moveI==3){
+        if(moveJ==0){
+            ref0=moveStart;
+            ref1=ref0+22;
+        }
+        else if(moveJ==1){
+            ref0=moveStart-1;
+            ref1=ref0+22;
+        }
+        else if(moveJ==2){
+            ref0=moveStart+24;
+            ref1=ref0+22;
+        }
+        else if(moveJ==3){
+            ref0=moveStart+23;
+            ref1=ref0+22;
+        }
+    }
+
+//    if(moveI==0) moveStart=250;
+//    else if(moveI==1) moveStart=252;
+//    else if(moveI==2) moveStart=205;
+//    else if(moveI==3) moveStart=207;
+//    else if(moveI==4) moveStart=251;
+//    else if(moveI==5) moveStart=253;
+//    else if(moveI==6) moveStart=226;
+//
+//    if(moveK==0){
+//        if(moveJ==0){
+//            ref0=moveStart;
+//            ref1=ref0-22;
+//        }
+//        else if(moveJ==1){
+//            ref0=moveStart+1;
+//            ref1=ref0-22;
+//        }
+//        else if(moveJ==2){
+//            ref0=moveStart-23;
+//            ref1=ref0-21;
+//        }
+//        else if(moveJ==3){
+//            ref0=moveStart-22;
+//            ref1=ref0-21;
+//        }
+//    }
+//    if(moveI==4 or moveI==5){
+//        if(moveJ==0){
+//            ref0=moveStart;
+//            ref1=ref0-23;
+//        }
+//        if(moveJ==1){
+//            ref0=moveStart+1;
+//            ref1=ref0-23;
+//        }
+//        if(moveJ==2){
+//            ref0=moveStart-24;
+//            ref1=ref0-22;
+//        }
+//        if(moveJ==3){
+//            ref0=moveStart-23;
+//            ref1=ref0-22;
+//        }
+//    }
+//    if(moveI==6){
+//        if(moveJ==0){
+//            ref0=moveStart;
+//            ref1=ref0-21;
+//        }
+//        if(moveJ==1){
+//            ref0=moveStart+2;
+//            ref1=ref0+1;
+//        }
+//        if(moveJ==2){
+//            ref0=moveStart+27;
+//            ref1=ref0+1;
+//        }
+//    }
+//    if(m==27){
+//        ref0=187;
+//        ref1=186;
+//    }
+//    if(m==28){
+//        ref0=185;
+//        ref1=209;
+//    }
+
+
+    commonNodes=getCommonValuesBetweenVectors(nodes[ref0].connections, nodes[ref1].connections);
+    ref2=commonNodes[0];
+    ref3=commonNodes[1];
+
+    trianglePair[0]=ref0;
+    trianglePair[1]=ref1;
+    trianglePair[2]=ref2;
+    trianglePair[3]=ref3;
+
+    consoleVector(trianglePair);
     return trianglePair;
 }
 
@@ -1334,16 +1517,74 @@ void Network::analyse(ofstream &logfile) {
     analyseAboavWeaire();
 
     //optional analysis
+    if(convertToAtomic) convertDualToAtomicNetwork();
     if(periodic && spatialRdf) analysePartialSpatialRdfs();
     if(periodic && topoRdf) analysePartialTopologicalRdfs();
-
-//    analyseAssortativity();
+    if(assortativeMix) analyseAssortativity();
 
     writeFileLine(logfile,name+" analysed");
     return;
 }
 
 //###### Analysis individual functions ######
+
+void Network::convertDualToAtomicNetwork() {
+    //triangulate nodes to generate atomic configuration
+
+    //make unique vertex list and vertex rings from node rings
+    nVertices=0;
+    vertices.clear();
+    vertexRings.clear();
+    Triangle nodeTriangle;
+    vector<int> ringPath;
+    string triangleID;
+    map<string,int> triangleVertexMap; //triangle id to vertex index map
+    for(int i=0; i<nRings; ++i){//loop over node rings
+        ringPath.clear();
+        for(int j=0; j<nodeRings[i].size; ++j){//loop over all node triangles (=vertices) in ring
+            nodeTriangle=Triangle(nodeRings[i].id,nodeRings[i].chain[j],nodeRings[i].chain[j+1]);
+            nodeTriangle.sort();
+            triangleID=nodeTriangle.getID();
+            if(triangleVertexMap.count(triangleID)==0){//if vertex not already generated, make vertex
+                vertices.push_back(Vertex(nodeTriangle.a, nodeTriangle.b, nodeTriangle.c));
+                triangleVertexMap[triangleID]=nVertices;
+                nVertices=++nVertices;
+            }
+            ringPath.push_back(triangleVertexMap[triangleID]);
+        }
+        vertexRings.push_back(Ring(ringPath.size(),ringPath,i)); //make vertex ring
+    }
+
+    //make vertex connections
+    for(int i=0; i<vertexRings.size(); ++i){//triply degenerate but vertex only accepts addition if unique
+        for(int j=0; j<vertexRings[i].size; ++j){
+            vertices[vertexRings[i].chain[j]].addConnection(vertexRings[i].chain[j+1]);
+            vertices[vertexRings[i].chain[j+1]].addConnection(vertexRings[i].chain[j]);
+        }
+    }
+
+    //make vertex coordinates
+    vector<Crd2d> nodeTriCrds(3);
+    if(!periodic){//aperiodic
+        for(int i=0; i<nVertices; ++i){
+            for(int j=0; j<3; ++j) nodeTriCrds[j]=nodes[vertices[i].dualNodes[j]].coordinate;
+            vertices[i].coordinate=crdCentreOfMass(nodeTriCrds);
+        }
+    }
+    else{//periodic
+        for(int i=0; i<nVertices; ++i){
+            for(int j=0; j<3; ++j) nodeTriCrds[j]=nodes[vertices[i].dualNodes[j]].coordinate;
+            for(int j=1; j<3; ++j) nodeTriCrds[j]=minimumImageCrd(nodeTriCrds[0],nodeTriCrds[j],periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+            vertices[i].coordinate=crdCentreOfMass(nodeTriCrds);
+            applyPeriodicBoundary(vertices[i].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+        }
+    }
+
+
+
+
+    return;
+}
 
 void Network::analyseRingStatistics() {
     //find ring statistics from p vector and normalise p matrix
@@ -1454,56 +1695,79 @@ void Network::analysePartialTopologicalRdfs() {
 }
 
 void Network::analyseAssortativity() {
-    //****experimental calculation of assortativity*****
+    //calculate assortative mixing Pearson correlation coefficient by two methods, and theoretically from alpha
 
-    double numerator=0.0;
-    int ii, jj;
+    assortativeMixing.resize(3,0.0);
+    //calculate useful moments
+    double n, n1=0.0, n2=0.0, n3=0.0;
+    int sizeI, sizeJ;
     for(int i=0; i<nRingSizes; ++i){
-        ii=i+minRingSize;
+        sizeI=i+minRingSize;
+        n=sizeI*ringStatistics[i];
+        n1=n1+n;
+        n2=n2+n*sizeI;
+        n3=n3+n*sizeI*sizeI;
+    }
+
+    //method 1, using pi matrix
+    double connectedCorrFunc=0.0;
+    for(int i=0; i<nRingSizes; ++i){
+        sizeI=i+minRingSize;
         for(int j=0; j<nRingSizes; ++j){
-            jj=j+minRingSize;
-            numerator=numerator+(ii-1)*(jj-1)*ii*ringStatistics[i]*(piMatrix[i][j]-jj*ringStatistics[j]/6.0);
+            sizeJ=j+minRingSize;
+            connectedCorrFunc=connectedCorrFunc+(sizeI-1.0)*(sizeJ-1.0)*sizeI*ringStatistics[i]*(piMatrix[i][j]-sizeJ*ringStatistics[j]/6.0);
         }
     }
-    numerator=numerator/6.0;
+    assortativeMixing[0]=connectedCorrFunc/(n3-n2*n2/n1);
 
-    double denominator=0.0;
-    double n3=0.0, n2=0.0;
-    for(int i=0; i<nRingSizes; ++i){
-        ii=i+minRingSize;
-        n3=n3+pow(ii,3)*ringStatistics[i];
-        n2=n2+pow(ii,2)*ringStatistics[i];
-    }
-    denominator=n3/6.0-n2*n2/36.0;
-
-    double theory=0.0;
-    theory=(n2-36.0)*(2.0-aboavWeaireParams[0])+36.0-n2*n2/36.0;
-    theory=theory/(n3/6.0-n2*n2/36.0);
-
+    //method 2, using edges
     int indexI, indexJ;
-    double sum1=0.0, sum2=0.0, sum3=0.0, n=0.0;
+    double sum1=0.0, sum2=0.0, sum3=0.0, nEdges=0.0;
     for(int i=0; i<nNodes; ++i){
         indexI=i;
         for(int j=0; j<nodes[i].size; ++j){
             indexJ=nodes[i].connections[j];
             if(indexI<indexJ){//prevent double counting
-                ii=nodes[indexI].size;
-                jj=nodes[indexJ].size;
-                sum1=sum1+ii*jj;
-                sum2=sum2+ii+jj;
-                sum3=sum3+ii*ii+jj*jj;
-                n=n+1.0;
+                sizeI=nodes[indexI].size;
+                sizeJ=nodes[indexJ].size;
+                sum1=sum1+sizeI*sizeJ;
+                sum2=sum2+sizeI+sizeJ;
+                sum3=sum3+sizeI*sizeI+sizeJ*sizeJ;
+                nEdges=nEdges+1.0;
             }
         }
     }
-    cout<<sum1<<" "<<sum2<<" "<<sum3<<endl;
-    sum1=sum1/n;
-    sum2=pow((0.5*sum2/n),2);
-    sum3=0.5*sum3/n;
-    cout<<sum1<<" "<<sum2<<" "<<sum3<<endl;
-    double paper=(sum1-sum2)/(sum3-sum2);
+    sum1=sum1/nEdges;
+    sum2=pow(0.5*sum2/nEdges,2);
+    sum3=0.5*sum3/nEdges;
+    assortativeMixing[1]=(sum1-sum2)/(sum3-sum2);
 
-    cout<<numerator/denominator<<" "<<theory<<" "<<paper<<endl;
+    //theoretical calculation from alpha and aboav-weaire law
+    connectedCorrFunc=0.0;
+    double mi;
+    for(int i=0; i<nRingSizes; ++i){
+        sizeI=i+minRingSize;
+        mi=0.0;
+        for(int j=0; j<nRingSizes; ++j){
+            sizeJ=j+minRingSize;
+            mi=mi+sizeJ*piMatrix[i][j];
+        }
+        mi=n2+n1*(1.0-aboavWeaireParams[0])*(sizeI-n1);
+        mi=mi/sizeI;
+        connectedCorrFunc=connectedCorrFunc+sizeI*sizeI*ringStatistics[i]*mi;
+//        connectedCorrFunc=connectedCorrFunc+sizeI*ringStatistics[i]*(n2+n1*(1.0-aboavWeaireParams[0])*(sizeI-n1));
+//        connectedCorrFunc=connectedCorrFunc+sizeI*ringStatistics[i]*n2;
+//        connectedCorrFunc=connectedCorrFunc-sizeI*ringStatistics[i]*n1*n1;
+//        connectedCorrFunc=connectedCorrFunc+sizeI*sizeI*ringStatistics[i]*n1;
+//        connectedCorrFunc=connectedCorrFunc+sizeI*ringStatistics[i]*n1*aboavWeaireParams[0]*n1;
+//        connectedCorrFunc=connectedCorrFunc-sizeI*sizeI*ringStatistics[i]*n1*aboavWeaireParams[0];
+    }
+//    connectedCorrFunc=2*n2*n1-n1*n1*n1+n1*n1*n1*aboavWeaireParams[0]-n1*n2*aboavWeaireParams[0];
+//    connectedCorrFunc=2*n2*n1-n1*n1*n1+aboavWeaireParams[0]*n1*(n1*n1-n2);
+    connectedCorrFunc=connectedCorrFunc-n2*n2/n1;
+    assortativeMixing[2]=connectedCorrFunc/(n3-n2*n2/n1);
+
+//    cout<<aboavWeaireParams[0]<<" "<<assortativeMixing[0]<<" "<<assortativeMixing[1]<<" "<<assortativeMixing[2]<<endl;
     return;
 }
 
@@ -1513,6 +1777,7 @@ void Network::write() {
     //write out to files
 
     writeDual();
+    if(convertToAtomic) writeAtomicNetwork();
 
     if(periodicVisualisation) writePeriodicNetwork();
     if(globalGeomOpt) writeGeometryOptimisationEnergy();
@@ -1520,6 +1785,7 @@ void Network::write() {
     writeAboavWeaire();
     if(periodic && spatialRdf) writeSpatialPartialRdfs();
     if(periodic && topoRdf) writeTopoPartialRdfs();
+    if(assortativeMix) writeAssortativeMixing();
 
     return;
 }
@@ -1551,6 +1817,38 @@ void Network::writeDual() {
         writeFileRowVector(sizeOutputFile,line);
     }
     sizeOutputFile.close();
+
+    return;
+}
+
+void Network::writeAtomicNetwork() {
+    //write out atomic coordinates, connectivities, rings and ring sizes
+
+    string crdOutputFileName=outPrefix+"graph_coordinates.out";
+    ofstream crdOutputFile(crdOutputFileName, ios::in|ios::trunc);
+    for(int i=0; i<nVertices; ++i) writeFileCrd(crdOutputFile,vertices[i].coordinate);
+    crdOutputFile.close();
+
+    string cnxOutputFileName=outPrefix+"graph_connectivity.out";
+    ofstream cnxOutputFile(cnxOutputFileName, ios::in|ios::trunc);
+    vector<int> cnxs;
+    for(int i=0; i<nVertices; ++i){
+        cnxs.clear();
+        cnxs.push_back(i);
+        for(int j=0; j<vertices[i].coordination; ++j) cnxs.push_back(vertices[i].connections[j]);
+        writeFileRowVector(cnxOutputFile,cnxs);
+    }
+    cnxOutputFile.close();
+
+    string sizeOutputFileName=outPrefix+"graph_size.out";
+    ofstream sizeOutputFile(sizeOutputFileName, ios::in|ios::trunc);
+    for(int i=0; i<vertexRings.size(); ++i) writeFileLine(sizeOutputFile,vertexRings[i].size);
+    sizeOutputFile.close();
+
+    string ringOutputFileName=outPrefix+"graph_rings.out";
+    ofstream ringOutputFile(ringOutputFileName, ios::in|ios::trunc);
+    for(int i=0; i<vertexRings.size(); ++i) writeFileRowVector(ringOutputFile,vertexRings[i].path());
+    ringOutputFile.close();
 
     return;
 }
@@ -1707,5 +2005,14 @@ void Network::writeTopoPartialRdfs() {
         writeFileColVector(rdfOutputFile,topoPartialRdfs[i].vectorHistogram());
     }
     rdfOutputFile.close();
+    return;
+}
+
+void Network::writeAssortativeMixing() {
+    //write pearson correlation coefficient calculated in three different ways
+    string amOutputFileName=outPrefix+"analysis_assortative_mix.out";
+    ofstream amOutputFile(amOutputFileName, ios::in|ios::trunc);
+    writeFileRowVector(amOutputFile,assortativeMixing);
+    amOutputFile.close();
     return;
 }
