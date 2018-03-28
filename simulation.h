@@ -34,9 +34,16 @@ private:
     bool convertDual, periodicVis, spatialRdf, topoRdf, assortative; //convert to atomic network, periodic visualisation, spatial partial rdfs, topological rdfs
     double spatialRdfBinWidth, spatialRdfExtent, topoRdfExtent; //histogram bin width and distance
 
+    //Atomic Potential Model and Geometry Optimisation
+    bool atomicGeomOpt; //geometry optimise atomic network
+    double keatingA, keatingAlpha, keatingBeta; //keating potential model parameters, bond length, force constant and angle force constant
+    int atomGeomOptMaxIt; //maximum iterations for geometry optimisation
+    double atomGeomOptConv, atomLineSearchStep; //convergence condition and line search step size for atomic optimisation
+
     //Logfile
     string logfileName; //name of log file
 
+    //Functions
     void readInputFile(); //read in simulation parameters
     void initialiseNetwork(Network &network, int seed); //set up network with input properties and given random seed
 

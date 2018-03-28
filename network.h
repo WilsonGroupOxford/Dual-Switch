@@ -41,6 +41,12 @@ private:
     bool convertToAtomic, periodicVisualisation, spatialRdf, topoRdf, assortativeMix; //convert dual to atomic network, make periodic image, spatial partial rdfs, topological rdfs, assortative mixing
     double spatialRdfBinwidth, spatialRdfExtent, topoRdfExtent; //size of bin rdf, max distance for rdf
 
+    //Atomic Geometry Optimisation
+    bool atomicGeomOpt; //geometry optimisation of atomic network at end
+    double keatingA, keatingAlpha, keatingBeta; //keating potential parameters
+    int atomicGeomOptMaxIt; //maximum number of steepest descent iterations
+    double atomicGeomOptCC, atomicLineSearchInc; //convergence criteria, line search increment
+
     //###### Construction variables ######
 
     //Further network properties
@@ -128,7 +134,7 @@ private:
     void analysePartialSpatialRdfs(); //calculate partial rdfs for each ring size
     void analysePartialTopologicalRdfs(); //calculate partial topological rdfs for each ring size
     void analyseAssortativity(); //calculate assortativity
-    void geometryOptimiseAtomicNetwork(); //globally minimise atomic network
+    void geometryOptimiseAtomicNetworkAperiodic(); //globally minimise aperiodic atomic network
 
     //###### Write functions ######
     void writeDual(); //write out dual network
@@ -149,6 +155,7 @@ public:
                       bool global, int globalMaxIt, double globalCC, double lineInc); //set parameters for potential model
     void setMonteCarlo(int seed, double t, int moves, double conv, double asf); //set monte carlo limits
     void setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt, bool aMix); //set analysis tools
+    void setAtomicPotential(bool opt, double kA, double kAlpha, double kBeta, int maxIt, double cc, double lineInc); //set parameters for atomic geometry optimisation
     bool getConsistency(); //get whether network constructed is consistent
     bool getTargetStatus(); //get whether target is met
     bool getIntersectionStatus(); //get whether has intersecting edges in dual

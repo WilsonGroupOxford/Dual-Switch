@@ -59,6 +59,18 @@ void Network::setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, dou
     return;
 }
 
+void Network::setAtomicPotential(bool opt, double kA, double kAlpha, double kBeta, int maxIt, double cc,
+                                 double lineInc) {
+    //set keating potential and geometry optimisation parameters
+    atomicGeomOpt=opt;
+    keatingA=kA;
+    keatingAlpha=kAlpha;
+    keatingBeta=kBeta;
+    atomicGeomOptMaxIt=maxIt;
+    atomicGeomOptCC=cc;
+    atomicLineSearchInc=lineInc;
+    return;
+}
 //###### GETTERS ######
 
 bool Network::getConsistency() {
@@ -1517,11 +1529,11 @@ void Network::analyse(ofstream &logfile) {
 
     //optional analysis
     if(convertToAtomic) convertDualToAtomicNetwork();
+    if(convertToAtomic && atomicGeomOpt && !periodic) geometryOptimiseAtomicNetworkAperiodic();
     if(periodic && spatialRdf) analysePartialSpatialRdfs();
     if(periodic && topoRdf) analysePartialTopologicalRdfs();
     if(assortativeMix) analyseAssortativity();
 
-    geometryOptimiseAtomicNetwork();
 
     writeFileLine(logfile,name+" analysed");
     return;
@@ -1769,25 +1781,58 @@ void Network::analyseAssortativity() {
     return;
 }
 
-void Network::geometryOptimiseAtomicNetwork() {
+void Network::geometryOptimiseAtomicNetworkAperiodic() {
     //optimise atomic network with keating potential
-    vector<Crd2d> testCrds(6);
-    for(int i=0; i<6; ++i) testCrds[i]=Crd2d(i,i%4*0.4);
-    KeatingMinimiser minimise(testCrds,0.000,0.001,1000);
-    minimise.setParameters(1.42, 25.880, 5.176);
-    vector<Pair> testBonds(6);
-    for(int i=0; i<5; ++i) testBonds[i]=Pair(i,i+1);
-    testBonds[5]=Pair(5,0);
-    vector<Trio> testAngle(6);
-    for(int i=0; i<4; ++i) testAngle[i]=Trio(i,i+1,i+2);
-    testAngle[4]=Trio(4,5,0);
-    testAngle[5]=Trio(5,0,1);
-    vector<DoublePair> testInt;
-    testInt.clear();
-    minimise.setInteractions(testBonds,testAngle,testInt);
-    minimise.steepestDescent();
-    testCrds=minimise.getMinimisedCoordinates();
-    for(int i=0; i<6; ++i) consoleCoordinate(testCrds[i]);
+
+    //make list of coordinates
+    vector<Crd2d> vertexCoordinates(nVertices);
+    for(int i=0; i<nVertices; ++i) vertexCoordinates[i]=vertices[i].coordinate;
+
+    //make list of bonds
+    vector<Pair> vertexBonds;
+    Pair bond;
+    for(int i=0; i<nVertices; ++i){//all unique pairs
+        bond.a=i;
+        for(int j=0; j<vertices[i].coordination; ++j){
+            bond.b=vertices[i].connections[j];
+            if(bond.a<bond.b) vertexBonds.push_back(bond); //prevent double counting
+        }
+    }
+
+    //make list of angles
+    vector<Trio> vertexAngles;
+    Trio angle;
+    for(int i=0; i<nVertices; ++i){//all unique angles about each central atom
+        angle.b=i; //central atom as b
+        //first angle for both 2 and three coordinate vertices
+        angle.a=vertices[i].connections[0];
+        angle.c=vertices[i].connections[1];
+        vertexAngles.push_back(angle);
+        //if three coordinate add two more angles
+        if(vertices[i].coordination==3){
+            angle.a=vertices[i].connections[1];
+            angle.c=vertices[i].connections[2];
+            vertexAngles.push_back(angle);
+            angle.a=vertices[i].connections[0];
+            angle.c=vertices[i].connections[2];
+            vertexAngles.push_back(angle);
+        }
+    }
+
+    //make list of line intersections ***** implement
+    vector<DoublePair> edges;
+    edges.clear();
+
+    //minimise
+    KeatingMinimiser keatingMinimise(vertexCoordinates,atomicGeomOptCC,atomicLineSearchInc,atomicGeomOptMaxIt);
+    keatingMinimise.setParameters(keatingA,keatingAlpha,keatingBeta);
+    keatingMinimise.setInteractions(vertexBonds,vertexAngles,edges);
+    keatingMinimise.steepestDescent();
+    vertexCoordinates=keatingMinimise.getMinimisedCoordinates();
+
+    //update coordinates
+    for(int i=0; i<nVertices; ++i) vertices[i].coordinate=vertexCoordinates[i];
+
     return;
 }
 
