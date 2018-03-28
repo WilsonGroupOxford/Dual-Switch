@@ -1521,6 +1521,8 @@ void Network::analyse(ofstream &logfile) {
     if(periodic && topoRdf) analysePartialTopologicalRdfs();
     if(assortativeMix) analyseAssortativity();
 
+    geometryOptimiseAtomicNetwork();
+
     writeFileLine(logfile,name+" analysed");
     return;
 }
@@ -1764,6 +1766,28 @@ void Network::analyseAssortativity() {
     assortativeMixing[2]=connectedCorrFunc/(n3-n2*n2/n1);
 
 //    cout<<aboavWeaireParams[0]<<" "<<assortativeMixing[0]<<" "<<assortativeMixing[1]<<" "<<assortativeMixing[2]<<endl;
+    return;
+}
+
+void Network::geometryOptimiseAtomicNetwork() {
+    //optimise atomic network with keating potential
+    vector<Crd2d> testCrds(6);
+    for(int i=0; i<6; ++i) testCrds[i]=Crd2d(i,i%4*0.4);
+    KeatingMinimiser minimise(testCrds,0.000,0.001,1000);
+    minimise.setParameters(1.42, 25.880, 5.176);
+    vector<Pair> testBonds(6);
+    for(int i=0; i<5; ++i) testBonds[i]=Pair(i,i+1);
+    testBonds[5]=Pair(5,0);
+    vector<Trio> testAngle(6);
+    for(int i=0; i<4; ++i) testAngle[i]=Trio(i,i+1,i+2);
+    testAngle[4]=Trio(4,5,0);
+    testAngle[5]=Trio(5,0,1);
+    vector<DoublePair> testInt;
+    testInt.clear();
+    minimise.setInteractions(testBonds,testAngle,testInt);
+    minimise.steepestDescent();
+    testCrds=minimise.getMinimisedCoordinates();
+    for(int i=0; i<6; ++i) consoleCoordinate(testCrds[i]);
     return;
 }
 

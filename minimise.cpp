@@ -665,3 +665,201 @@ void HarmonicMinimiser::runTests() {
     //test minimiser
 
 }
+
+//###### Keating Minimiser ######
+
+KeatingMinimiser::KeatingMinimiser(vector<Crd2d> crds, double cc, double inc, int maxIt) {
+    coordinates=crds;
+    convergenceCriteria=cc;
+    lineSearchIncrement=inc;
+    maxIterations=maxIt;
+    nPnts=coordinates.size();
+    zeroForce=Crd2d();
+    zeroForces.resize(nPnts,Crd2d());
+    return;
+}
+
+void KeatingMinimiser::setParameters(double kpA, double kpAlpha, double kpBeta) {
+    //initialise keating potential parameters
+
+    a=kpA;
+    alpha=kpAlpha;
+    beta=kpBeta;
+
+    aSq=a*a;
+    aSq_2=aSq/2.0;
+    kBondForce=(3.0/4.0)*(alpha/aSq);
+    kAngleForce=(3.0/4.0)*(beta/aSq);
+    kBondEnergy=(3.0/16.0)*(alpha/aSq);
+    kAngleEnergy=(3.0/8.0)*(beta/aSq);
+
+    return;
+}
+
+void KeatingMinimiser::setInteractions(vector<Pair> kpBonds, vector<Trio> kpAngles, vector<DoublePair> ints) {
+    //lists of atoms forming bonds, angles, and line intersections
+
+    bonds=kpBonds;
+    angles=kpAngles;
+    intersectionPairs=ints;
+
+    nBonds=bonds.size();
+    nAngles=angles.size();
+    nIntersectionPairs=intersectionPairs.size();
+    return;
+}
+
+int KeatingMinimiser::steepestDescent() {
+    //aperiodic steepest descent optimisation
+
+    iterations=0; //intialise iteration counter
+    previousEnergy=numeric_limits<double>::infinity(); //set initial energy to infinite
+    deltaEZeroCount=0; //initialise no energy change counter
+    complete=false; //calculation complete
+    converged=false; //calculation converged
+    for(;;){
+        calculateForces();
+        lineSearch();
+        checkConvergence();
+        cout<<iterations<<" "<<currentEnergy<<endl;
+        if(complete) break;
+    }
+
+    return 1;
+}
+
+void KeatingMinimiser::calculateForces() {
+    //calculate force on each point due to harmonic pairs - set to zero if a fixed point
+    forces=zeroForces;
+    //calculate force due to bonds
+    Crd2d force;
+    int a, b;
+    for(int i=0; i<nBonds; ++i){
+        a=bonds[i].a;
+        b=bonds[i].b;
+        force=bondForce(coordinates[a], coordinates[b]);
+        forces[a].x=forces[a].x-force.x;
+        forces[a].y=forces[a].y-force.y;
+        forces[b].x=forces[b].x+force.x;
+        forces[b].y=forces[b].y+force.y;
+    }
+    //calculate force due to angles
+    Crd2d forceI, forceJ, forceK; //force on points i--j--k
+    int c;
+    for(int i=0; i<nAngles; ++i){
+        a=angles[i].a;
+        b=angles[i].b;
+        c=angles[i].c;
+        angleForce(coordinates[a],coordinates[b],coordinates[c],forceI,forceJ,forceK);
+        forces[a].x=forces[a].x+forceI.x;
+        forces[a].y=forces[a].y+forceI.y;
+        forces[b].x=forces[b].x+forceJ.x;
+        forces[b].y=forces[b].y+forceJ.y;
+        forces[c].x=forces[c].x+forceK.x;
+        forces[c].y=forces[c].y+forceK.y;
+    }
+    return;
+}
+
+Crd2d KeatingMinimiser::bondForce(Crd2d &c1, Crd2d &c2) {
+    //f=-k(r^2-a^2)r
+    Crd2d f, fDir; //force and direction
+    double fMag; //magnitude of force
+    fDir.x=c2.x-c1.x;
+    fDir.y=c2.y-c1.y;
+    fMag=kBondForce*(fDir.x*fDir.x+fDir.y*fDir.y-aSq);
+    f.x=-fMag*fDir.x;
+    f.y=-fMag*fDir.y;
+    return f;
+}
+
+void KeatingMinimiser::angleForce(Crd2d &cI, Crd2d &cJ, Crd2d &cK, Crd2d &fI, Crd2d &fJ, Crd2d &fK) {
+    //f=-k(r1*r2+a^2/2)r1r2
+    Vec2d vecRij(cJ,cI), vecRkj(cJ,cK); //vectors to edge points from central point, convention Rij=ri-rj
+    double rij, rkj; //lengths of vectors
+    vecRij.normalise(rij); //normalise and get length
+    vecRkj.normalise(rkj); //normalise and get length
+    double cosTheta=vecRij.x*vecRkj.x+vecRij.y*vecRkj.y; //get angle between vectors
+    double fMag=-kAngleForce*(rij*rkj*cosTheta+aSq_2); //neglect r1r2 multiplication as need to divide by one in direction
+    fI.x=(fMag*rkj)*(vecRkj.x-cosTheta*vecRij.x);
+    fI.y=(fMag*rkj)*(vecRkj.y-cosTheta*vecRij.y);
+    fK.x=(fMag*rij)*(vecRij.x-cosTheta*vecRkj.x);
+    fK.y=(fMag*rij)*(vecRij.y-cosTheta*vecRkj.y);
+    fJ.x=-fI.x-fK.x;
+    fJ.y=-fI.y-fK.y;
+    return;
+}
+
+void KeatingMinimiser::lineSearch() {
+    //move points along direction of force, recalculate energy and find minimum
+    double e0, e1;
+    e0=calculateEnergy();
+    for(;;){
+        for(int i=0; i<nPnts; ++i){//update positions
+            coordinates[i].x=coordinates[i].x+lineSearchIncrement*forces[i].x;
+            coordinates[i].y=coordinates[i].y+lineSearchIncrement*forces[i].y;
+        }
+        e1=calculateEnergy(); //calculate new energy
+        if(e1-e0>1e-8){//if energy increases, passed through minimum so backtrack
+            for(int i=0; i<nPnts; ++i){//update positions
+                coordinates[i].x=coordinates[i].x-lineSearchIncrement*forces[i].x;
+                coordinates[i].y=coordinates[i].y-lineSearchIncrement*forces[i].y;
+            }
+            currentEnergy=calculateEnergy();
+            break;
+        }
+        else e0=e1;
+    }
+    return;
+}
+
+double KeatingMinimiser::calculateEnergy() {
+    //calculate energy of harmonic interactions
+    double energy=0.0;
+    for(int i=0; i<nBonds; ++i) energy=energy+bondEnergy(coordinates[bonds[i].a], coordinates[bonds[i].b]);
+    for(int i=0; i<nAngles; ++i) energy=energy+angleEnergy(coordinates[angles[i].a], coordinates[angles[i].b], coordinates[angles[i].c]);
+    return energy;
+}
+
+double KeatingMinimiser::bondEnergy(Crd2d &c1, Crd2d &c2) {
+    //u=k*(r^2-a^2)^2
+    Vec2d v(c1,c2);
+    return kBondEnergy*pow((v.x*v.x+v.y*v.y-aSq),2);
+}
+
+double KeatingMinimiser::angleEnergy(Crd2d &cI, Crd2d &cJ, Crd2d &cK) {
+    //u=k*(r1.r2+a^2/2)^2
+    Vec2d vij(cJ,cI), vkj(cJ,cK); //convention Rij=ri-rj
+    return kAngleEnergy*pow((vij.x*vkj.x+vij.y*vkj.y+aSq_2),2);
+}
+
+void KeatingMinimiser::checkConvergence() {
+    //check if energy converged, or hit maximum iterations
+    if(iterations==maxIterations){//complete but not converged
+        complete=true;
+        return;
+    }
+    iterations=++iterations;
+    if(currentEnergy<convergenceCriteria){//complete and converged
+        complete=true;
+        converged=true;
+        return;
+    }
+    double deltaE=previousEnergy-currentEnergy;
+    previousEnergy=currentEnergy;
+    if(deltaE<1e-6) deltaEZeroCount=++deltaEZeroCount;
+    else deltaEZeroCount=0; //reset counter
+    if(deltaEZeroCount==10){//complete and converged and non-zero
+        complete=true;
+        converged=true;
+        return;
+    }
+    return;
+}
+
+
+//###### GETTERS ######
+vector<Crd2d> KeatingMinimiser::getMinimisedCoordinates() {
+    //return minimised coordinates
+    return coordinates;
+}

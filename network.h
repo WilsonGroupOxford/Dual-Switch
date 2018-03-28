@@ -128,6 +128,7 @@ private:
     void analysePartialSpatialRdfs(); //calculate partial rdfs for each ring size
     void analysePartialTopologicalRdfs(); //calculate partial topological rdfs for each ring size
     void analyseAssortativity(); //calculate assortativity
+    void geometryOptimiseAtomicNetwork(); //globally minimise atomic network
 
     //###### Write functions ######
     void writeDual(); //write out dual network

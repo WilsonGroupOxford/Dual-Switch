@@ -26,6 +26,13 @@ struct Pair{
     Pair(int aInit, int bInit);
 };
 
+//3 dimensional integer pair
+struct Trio{
+    int a, b, c;
+    Trio();
+    Trio(int aInit, int bInit, int cInit);
+};
+
 //4 dimensional integer pair
 struct DoublePair{
     int a, b, c, d;
@@ -54,6 +61,8 @@ struct Vec2d{
     Vec2d(Crd2d c1, Crd2d c2, double pbcX, double pbcY, double rX, double rY);
     double length();
     void normalise();
+    void normalise(double &norm);
+
     void rotate90();
     void scale(double s);
     void invert();

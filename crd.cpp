@@ -24,6 +24,20 @@ Pair::Pair(int aInit, int bInit) {
     return;
 }
 
+Trio::Trio() {
+    a=0;
+    b=0;
+    c=0;
+    return;
+}
+
+Trio::Trio(int aInit, int bInit, int cInit) {
+    a=aInit;
+    b=bInit;
+    c=cInit;
+    return;
+}
+
 DoublePair::DoublePair() {
     a=0;
     b=0;
@@ -147,6 +161,14 @@ double Vec2d::length() {
 void Vec2d::normalise() {
     //make unit vector
     double norm=length();
+    x=x/norm;
+    y=y/norm;
+    return;
+}
+
+void Vec2d::normalise(double &norm) {
+    //make unit vector
+    norm=length();
     x=x/norm;
     y=y/norm;
     return;
