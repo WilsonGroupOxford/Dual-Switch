@@ -632,7 +632,7 @@ double HarmonicAperiodicGO::calculateAngleEnergies() {
 }
 
 /*###### HARMONIC PERIODIC OPTIMISER ######
- * takes single k and list of r0, no minimum image convention */
+ * takes single k and list of r0, periodic boundary conditions */
 
 HarmonicPeriodicGO::HarmonicPeriodicGO(){
     return;
@@ -667,7 +667,7 @@ Crd2d HarmonicPeriodicGO::bondForce(Crd2d &cI, Crd2d &cJ, double &r0) {
     Crd2d f; //force
     Vec2d fDir(cI,cJ); //force direction
     fDir.x=fDir.x-pbcX*round(fDir.x*pbcRX); //apply mic
-    fDir.y=fDir.y-pbcY*round(fDir.y*pbcRY); //apply mic
+    fDir.y=fDir.y-pbcY*round(fDir.y*pbcRY);
     double fMag, r; //magnitude of force, distance between points
     r=sqrt(fDir.x*fDir.x+fDir.y*fDir.y);
     fMag=forceK*(r-r0)/r; //divide by r to cancel length built into fDir
@@ -739,8 +739,7 @@ Crd2d KeatingAperiodicGO::bondForce(Crd2d &cI, Crd2d &cJ) {
     //force of single bond, F=-k(r^2-a^2)r
     Crd2d f; //force
     Vec2d fDir(cI,cJ); //force direction
-    double fMag; //magnitude of force
-    fMag=kBondForce*(fDir.x*fDir.x+fDir.y*fDir.y-aSq);
+    double fMag=kBondForce*(fDir.x*fDir.x+fDir.y*fDir.y-aSq); //magnitude of force
     f.x=-fMag*fDir.x;
     f.y=-fMag*fDir.y;
     return f;
@@ -800,6 +799,121 @@ double KeatingAperiodicGO::calculateAngleEnergies() {
     for(int i=0; i<nAngles; ++i){
         vij=Vec2d(coordinates[angles[i].b],coordinates[angles[i].a]);
         vkj=Vec2d(coordinates[angles[i].b],coordinates[angles[i].c]);
+        energy=energy+kAngleEnergy*pow((vij.x*vkj.x+vij.y*vkj.y+aSq_2),2);
+    }
+    return energy;
+}
+
+/*###### KEATING PERIODIC OPTIMISER ######
+ * takes a, alpha, beta, periodic boundary conditions */
+
+KeatingPeriodicGO::KeatingPeriodicGO(){
+    return;
+};
+
+void KeatingPeriodicGO::setPotentialParameters(double a, double alpha, double beta) {
+    //take single force constant and list of r0
+    aSq=a*a;
+    aSq_2=aSq/2.0;
+    kBondForce=(3.0/4.0)*(alpha/aSq);
+    kAngleForce=(3.0/4.0)*(beta/aSq);
+    kBondEnergy=(3.0/16.0)*(alpha/aSq);
+    kAngleEnergy=(3.0/8.0)*(beta/aSq);
+    return;
+}
+
+void KeatingPeriodicGO::calculateBondForces() {
+    //calculate force from all bonds
+    Crd2d force;
+    int a, b;
+    for(int i=0; i<nBonds; ++i){
+        a=bonds[i].a;
+        b=bonds[i].b;
+        force=bondForce(coordinates[a], coordinates[b]);
+        forces[a].x=forces[a].x-force.x;
+        forces[a].y=forces[a].y-force.y;
+        forces[b].x=forces[b].x+force.x;
+        forces[b].y=forces[b].y+force.y;
+    }
+    return;
+}
+
+Crd2d KeatingPeriodicGO::bondForce(Crd2d &cI, Crd2d &cJ) {
+    //force of single bond, F=-k(r^2-a^2)r
+    Crd2d f; //force
+    Vec2d fDir(cI,cJ); //force direction
+    fDir.x=fDir.x-pbcX*round(fDir.x*pbcRX); //apply mic
+    fDir.y=fDir.y-pbcY*round(fDir.y*pbcRY);
+    double fMag=kBondForce*(fDir.x*fDir.x+fDir.y*fDir.y-aSq); //magnitude of force
+    f.x=-fMag*fDir.x;
+    f.y=-fMag*fDir.y;
+    return f;
+}
+
+void KeatingPeriodicGO::calculateAngleForces() {
+    //calculate force due to angles
+    Crd2d forceI, forceJ, forceK; //force on points i--j--k
+    int a,b,c;
+    for(int i=0; i<nAngles; ++i){
+        a=angles[i].a;
+        b=angles[i].b;
+        c=angles[i].c;
+        angleForce(coordinates[a],coordinates[b],coordinates[c],forceI,forceJ,forceK);
+        forces[a].x=forces[a].x+forceI.x;
+        forces[a].y=forces[a].y+forceI.y;
+        forces[b].x=forces[b].x+forceJ.x;
+        forces[b].y=forces[b].y+forceJ.y;
+        forces[c].x=forces[c].x+forceK.x;
+        forces[c].y=forces[c].y+forceK.y;
+    }
+    return;
+}
+
+void KeatingPeriodicGO::angleForce(Crd2d &cI, Crd2d &cJ, Crd2d &cK, Crd2d &fI, Crd2d &fJ, Crd2d &fK) {
+    //force of single angle, f=-k(r1*r2+a^2/2)r1r2
+    Vec2d vecRij(cJ,cI), vecRkj(cJ,cK); //vectors to edge points from central point, convention Rij=ri-rj
+    vecRij.x=vecRij.x-pbcX*round(vecRij.x*pbcRX); //apply mic
+    vecRij.y=vecRij.y-pbcY*round(vecRij.y*pbcRY);
+    vecRkj.x=vecRkj.x-pbcX*round(vecRkj.x*pbcRX); //apply mic
+    vecRkj.y=vecRkj.y-pbcY*round(vecRkj.y*pbcRY);
+    double rij, rkj; //lengths of vectors
+    vecRij.normalise(rij); //normalise and get length
+    vecRkj.normalise(rkj); //normalise and get length
+    double cosTheta=vecRij.x*vecRkj.x+vecRij.y*vecRkj.y; //get angle between vectors
+    double fMag=-kAngleForce*(rij*rkj*cosTheta+aSq_2); //neglect r1r2 multiplication as need to divide by one in direction
+    fI.x=(fMag*rkj)*(vecRkj.x-cosTheta*vecRij.x);
+    fI.y=(fMag*rkj)*(vecRkj.y-cosTheta*vecRij.y);
+    fK.x=(fMag*rij)*(vecRij.x-cosTheta*vecRkj.x);
+    fK.y=(fMag*rij)*(vecRij.y-cosTheta*vecRkj.y);
+    fJ.x=-fI.x-fK.x;
+    fJ.y=-fI.y-fK.y;
+    return;
+}
+
+double KeatingPeriodicGO::calculateBondEnergies() {
+    //calculate energies of all bonds, U=k*(r^2-a^2)^2
+    double energy=0.0;
+    Vec2d v;
+    for(int i=0; i<nBonds; ++i){
+        v=Vec2d(coordinates[bonds[i].a],coordinates[bonds[i].b]);
+        v.x=v.x-pbcX*round(v.x*pbcRX);
+        v.y=v.y-pbcY*round(v.y*pbcRY);
+        energy=energy+kBondEnergy*pow((v.x*v.x+v.y*v.y-aSq),2);
+    }
+    return energy;
+}
+
+double KeatingPeriodicGO::calculateAngleEnergies() {
+    //calculate energies of all angles, U=k*(r1.r2+a^2/2)^2
+    double energy=0.0;
+    Vec2d vij, vkj; //convention Rij=ri-rj
+    for(int i=0; i<nAngles; ++i){
+        vij=Vec2d(coordinates[angles[i].b],coordinates[angles[i].a]);
+        vkj=Vec2d(coordinates[angles[i].b],coordinates[angles[i].c]);
+        vij.x=vij.x-pbcX*round(vij.x*pbcRX);
+        vij.y=vij.y-pbcY*round(vij.y*pbcRY);
+        vkj.x=vkj.x-pbcX*round(vkj.x*pbcRX);
+        vkj.y=vkj.y-pbcY*round(vkj.y*pbcRY);
         energy=energy+kAngleEnergy*pow((vij.x*vkj.x+vij.y*vkj.y+aSq_2),2);
     }
     return energy;

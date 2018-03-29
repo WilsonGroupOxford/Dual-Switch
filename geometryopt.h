@@ -174,4 +174,25 @@ public:
     void setPotentialParameters(double a, double alpha, double beta);
 };
 
+class KeatingPeriodicGO: public PeriodicGeometryOptimiser {
+//keating, periodic
+private:
+    //virtual functions to define
+    void calculateBondForces() override;
+    void calculateAngleForces() override;
+    double calculateBondEnergies() override;
+    double calculateAngleEnergies() override;
+
+    //additional functions
+    Crd2d bondForce(Crd2d &cI, Crd2d &cJ);
+    void angleForce(Crd2d &cI, Crd2d &cJ, Crd2d &cK, Crd2d &fI, Crd2d &fJ, Crd2d &fK);
+
+    //potential parameters
+    double aSq, aSq_2, kBondForce, kAngleForce, kBondEnergy, kAngleEnergy;
+
+public:
+    KeatingPeriodicGO();
+    void setPotentialParameters(double a, double alpha, double beta);
+};
+
 #endif //DUAL_SWITCH_GEOMETRYOPT_H

@@ -3,7 +3,7 @@ IO
 ./test_optt output prefix
 --------------------------------------
 Network Properties
-0          periodic
+1          periodic
 0           use existing network (P)
 20 20     starting bulk hexagonal lattice dimensions (even for periodic)
 4 10      ring size limits
