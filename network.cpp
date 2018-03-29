@@ -1819,15 +1819,31 @@ void Network::geometryOptimiseAtomicNetworkAperiodic() {
         }
     }
 
-    //make list of line intersections ***** implement
+    //make list of line intersections - each edge of ring with other edges of ring
     vector<DoublePair> edges;
+    vector<Pair> ringEdges;
     edges.clear();
+    for(int i=0; i<vertexRings.size(); ++i){//loop over rings
+        ringEdges.clear();
+        //make list of edges
+        for(int j=0; j<vertexRings[i].size; ++j) ringEdges.push_back(Pair(vertexRings[i].chain[j],vertexRings[i].chain[j+1]));
+        //prevent overlap of first edge with rest except neighbouring edges
+        for(int j=2; j<vertexRings[i].size-1; ++j){
+            edges.push_back(DoublePair(ringEdges[0].a,ringEdges[0].b,ringEdges[j].a,ringEdges[j].b));
+        }
+        //prevent overlap of remaining edges with rest
+        for(int j=1; j<ringEdges.size()-1; ++j){
+            for(int k=j+2; k<ringEdges.size(); ++k){
+                edges.push_back(DoublePair(ringEdges[j].a,ringEdges[j].b,ringEdges[k].a,ringEdges[k].b));
+            }
+        }
+    }
 
     //minimise
     KeatingMinimiser keatingMinimise(vertexCoordinates,atomicGeomOptCC,atomicLineSearchInc,atomicGeomOptMaxIt);
     keatingMinimise.setParameters(keatingA,keatingAlpha,keatingBeta);
     keatingMinimise.setInteractions(vertexBonds,vertexAngles,edges);
-    keatingMinimise.steepestDescent();
+    int status=keatingMinimise.steepestDescent();
     vertexCoordinates=keatingMinimise.getMinimisedCoordinates();
 
     //update coordinates

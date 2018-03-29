@@ -712,6 +712,9 @@ void KeatingMinimiser::setInteractions(vector<Pair> kpBonds, vector<Trio> kpAngl
 int KeatingMinimiser::steepestDescent() {
     //aperiodic steepest descent optimisation
 
+    //check if intersections, if so return without minimising
+    if(checkIntersections()) return 0;
+
     iterations=0; //intialise iteration counter
     previousEnergy=numeric_limits<double>::infinity(); //set initial energy to infinite
     deltaEZeroCount=0; //initialise no energy change counter
@@ -816,6 +819,7 @@ void KeatingMinimiser::lineSearch() {
 double KeatingMinimiser::calculateEnergy() {
     //calculate energy of harmonic interactions
     double energy=0.0;
+    if(checkIntersections()) return numeric_limits<double>::infinity();
     for(int i=0; i<nBonds; ++i) energy=energy+bondEnergy(coordinates[bonds[i].a], coordinates[bonds[i].b]);
     for(int i=0; i<nAngles; ++i) energy=energy+angleEnergy(coordinates[angles[i].a], coordinates[angles[i].b], coordinates[angles[i].c]);
     return energy;
@@ -857,6 +861,15 @@ void KeatingMinimiser::checkConvergence() {
     return;
 }
 
+bool KeatingMinimiser::checkIntersections() {
+    bool intersection=false;
+    for(int i=0; i<nIntersectionPairs; ++i){
+        intersection=properIntersectionLines(coordinates[intersectionPairs[i].a],coordinates[intersectionPairs[i].b],
+                                             coordinates[intersectionPairs[i].c], coordinates[intersectionPairs[i].d]);
+        if(intersection) return true;
+    }
+    return intersection;
+}
 
 //###### GETTERS ######
 vector<Crd2d> KeatingMinimiser::getMinimisedCoordinates() {

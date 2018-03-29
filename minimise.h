@@ -119,7 +119,7 @@ private:
     double bondEnergy(Crd2d &c1, Crd2d &c2); //energy of bonds
     double angleEnergy(Crd2d &cI, Crd2d &cJ, Crd2d &cK); //energy of angles
     void lineSearch(); //move along lines of force to minimum energy
-//    bool checkIntersections(); //check if any line intersections
+    bool checkIntersections(); //check if any line intersections
     void checkConvergence(); //check energy convergence or maximum iterations
 //
 //    //overlap resolution functions
