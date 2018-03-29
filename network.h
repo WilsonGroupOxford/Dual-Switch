@@ -126,6 +126,8 @@ private:
     vector< vector<int> > topoRdfShellSizes; //number of rings in each shell for each ring size
     vector<Rdf> topoPartialRdfs; //rdfs for each ring size pair
     vector<double> assortativeMixing; //pearson cc via two methods
+    int atomicGeomOptStatus, atomicGeomOptIterations; //whether optimised, number of iterations
+    double atomicGeomOptEnergy; //final energy of geometry optimisation
 
     //###### Analysis functions ######
     void convertDualToAtomicNetwork(); //triangulate nodes to get atomic network
@@ -147,6 +149,7 @@ private:
     void writeSpatialPartialRdfs(); //write out partial rdfs
     void writeTopoPartialRdfs(); //write out partial rdfs
     void writeAssortativeMixing(); //write out assortative pearson correlation
+    void writeAtomicGeometryOptimisation(); //write energy of atomic system
 
 public:
     void setIO(string in, string out); //set input/output properties

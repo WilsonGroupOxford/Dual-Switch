@@ -1534,7 +1534,6 @@ void Network::analyse(ofstream &logfile) {
     if(periodic && topoRdf) analysePartialTopologicalRdfs();
     if(assortativeMix) analyseAssortativity();
 
-
     writeFileLine(logfile,name+" analysed");
     return;
 }
@@ -1804,7 +1803,7 @@ void Network::geometryOptimiseAtomicNetworkAperiodic() {
     Trio angle;
     for(int i=0; i<nVertices; ++i){//all unique angles about each central atom
         angle.b=i; //central atom as b
-        //first angle for both 2 and three coordinate vertices
+        //first angle for both two and three coordinate vertices
         angle.a=vertices[i].connections[0];
         angle.c=vertices[i].connections[1];
         vertexAngles.push_back(angle);
@@ -1843,11 +1842,29 @@ void Network::geometryOptimiseAtomicNetworkAperiodic() {
     KeatingMinimiser keatingMinimise(vertexCoordinates,atomicGeomOptCC,atomicLineSearchInc,atomicGeomOptMaxIt);
     keatingMinimise.setParameters(keatingA,keatingAlpha,keatingBeta);
     keatingMinimise.setInteractions(vertexBonds,vertexAngles,edges);
-    int status=keatingMinimise.steepestDescent();
+    atomicGeomOptStatus=keatingMinimise.steepestDescent();
     vertexCoordinates=keatingMinimise.getMinimisedCoordinates();
 
-    //update coordinates
-    for(int i=0; i<nVertices; ++i) vertices[i].coordinate=vertexCoordinates[i];
+    //check entire atomic network for overlaps
+    vector<Pair> checkEdges;
+    for(int i=0; i<vertexRings.size(); ++i){//make list of edges, not unique but ok as will double check
+        for(int j=0; j<vertexRings[i].size; ++j) checkEdges.push_back(Pair(vertexRings[i].chain[j],vertexRings[i].chain[j+1]));
+    }
+    bool intersection=false;
+    for(int i=0; i<checkEdges.size()-1; ++i){//check all edges against each other
+        for(int j=i+1; j<checkEdges.size(); ++j){
+            intersection=properIntersectionLines(vertexCoordinates[checkEdges[i].a],vertexCoordinates[checkEdges[i].b],vertexCoordinates[checkEdges[j].a],vertexCoordinates[checkEdges[j].b]);
+            if (intersection) break;
+        }
+    }
+    if(intersection) atomicGeomOptStatus=0;
+
+    //if no intersections get energy and iteration information and update coordinates
+    if(atomicGeomOptStatus==1){
+        atomicGeomOptEnergy=keatingMinimise.getEnergy();
+        atomicGeomOptIterations=keatingMinimise.getIterations();
+        for(int i=0; i<nVertices; ++i) vertices[i].coordinate=vertexCoordinates[i];
+    }
 
     return;
 }
@@ -1867,6 +1884,7 @@ void Network::write() {
     if(periodic && spatialRdf) writeSpatialPartialRdfs();
     if(periodic && topoRdf) writeTopoPartialRdfs();
     if(assortativeMix) writeAssortativeMixing();
+    if(convertToAtomic && atomicGeomOpt) writeAtomicGeometryOptimisation();
 
     return;
 }
@@ -2205,5 +2223,18 @@ void Network::writeAssortativeMixing() {
     ofstream amOutputFile(amOutputFileName, ios::in|ios::trunc);
     writeFileRowVector(amOutputFile,assortativeMixing);
     amOutputFile.close();
+    return;
+}
+
+void Network::writeAtomicGeometryOptimisation() {
+    //write out success and final energy/iterations of atomic geometry optimisation
+    string geomOutputFileName=outPrefix+"analysis_atomic_geometry_opt.out";
+    ofstream geomOutputFile(geomOutputFileName, ios::in|ios::trunc);
+    writeFileValue(geomOutputFile, atomicGeomOptStatus);
+    if(atomicGeomOptStatus==1){
+        writeFileValue(geomOutputFile, atomicGeomOptEnergy);
+        writeFileValue(geomOutputFile, atomicGeomOptIterations);
+    }
+    geomOutputFile.close();
     return;
 }

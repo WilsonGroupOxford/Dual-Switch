@@ -876,3 +876,13 @@ vector<Crd2d> KeatingMinimiser::getMinimisedCoordinates() {
     //return minimised coordinates
     return coordinates;
 }
+
+double KeatingMinimiser::getEnergy() {
+    //return final minimised energy
+    return currentEnergy;
+}
+
+int KeatingMinimiser::getIterations() {
+    //return number of iterations of minimisation
+    return iterations;
+}
