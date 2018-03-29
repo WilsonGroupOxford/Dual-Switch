@@ -6,10 +6,11 @@
 #include "vectorManip.h"
 #include "customIO.h"
 
-class GeometryOptimiser {
-//base class for optimisers
+class GeometryOptimiser{
+//base class for geometry optimisers
 protected:
     //optimisation parameters
+    bool resolveStructure; //whether to attempt to resolve initial structure
     int maxIterations; //maximum possible iterations for optimisation
     double convergenceCriteria, lineSearchIncrement; //for calculation end and optimisation line search
 
@@ -32,7 +33,7 @@ protected:
     vector<Crd2d> forces; //force for each coordinate
 
     //steepest descent functions
-    virtual int checkInitialStructure()=0; //ensure starting structure is valid
+    int checkInitialStructure(); //ensure starting structure is valid
     void calculateForces(); //from all contributions
     virtual void calculateBondForces()=0; //forces due to bonds
     virtual void calculateAngleForces()=0; //forces due to angles
@@ -43,13 +44,20 @@ protected:
     virtual double calculateAngleEnergies()=0; //energies due to angles
     void checkConvergence(); //check if optimisation converged or hit limits
 
+    //line overlap resolution
+    bool resolveIntersections(); //attempt to resolve line overlaps
+    virtual vector<DoublePair> getIntersections()=0;
+    Pair findMajorIntersection(vector<DoublePair> &intersectingLines, int &majorCount);
+    vector<int> findUniquePoints(vector<DoublePair> &intersectingLines, Pair &majorLine);
+    virtual bool moveIntersectingPoints(vector<int> &uniquePoints, Pair &majorIntersection, int &nIntersections)=0;
+
 public:
     //constructors
     GeometryOptimiser();
 
     //setters
     void setCoordinates(vector<Crd2d> crds);
-    void setOptisationParameters(double convCriteria, double lineInc, int maxIt);
+    void setOptisationParameters(double convCriteria, double lineInc, int maxIt, bool res);
     void setSystemParameters(vector<Pair> sysBonds, vector<Trio> sysAngles, vector<int> sysFixed, vector<DoublePair> sysInt);
     //set potential parameters in concrete class
 
@@ -59,33 +67,58 @@ public:
     int getIterations(); //number of iterations before optimisation completed
 
     //optimisation functions
-    int steepestDescent(); //main geometry optimisation function
+    virtual int steepestDescent()=0; //main geometry optimisation function
 };
 
-class IntersectionResolver {
-    //base class for finding and resolving line intersections
+class AperiodicGeometryOptimiser: public GeometryOptimiser{
+//base class for aperiodic geometry optimisers
 protected:
-    virtual vector<DoublePair> getIntersections()=0;
-    Pair findMajorIntersection(vector<DoublePair> &intersectingLines, int &majorCount);
-    vector<int> findUniquePoints(vector<DoublePair> &intersectingLines, Pair &majorLine);
-    virtual bool moveIntersectingPoints(vector<int> &uniquePoints, Pair &majorIntersection, int &nIntersections)=0;
-
-public:
-    IntersectionResolver(); //default constructor
-    bool resolveIntersections(); //attempt to resolve line intersections
-};
-
-class HarmonicAperiodicGO: public GeometryOptimiser, public IntersectionResolver {
-private:
     //virtual functions to define
-    int checkInitialStructure() override;
-    void calculateBondForces() override;
-    void calculateAngleForces() override;
     bool checkIntersections() override;
-    double calculateBondEnergies() override;
-    double calculateAngleEnergies() override;
     vector<DoublePair> getIntersections() override;
     bool moveIntersectingPoints(vector<int> &uniquePoints, Pair &majorIntersection, int &nIntersections) override;
+
+public:
+    //constructor
+    AperiodicGeometryOptimiser();
+
+    //optimisation functions
+    int steepestDescent() override; //main geometry optimisation function
+};
+
+class PeriodicGeometryOptimiser: public GeometryOptimiser{
+//base class for periodic geometry optimisers
+protected:
+    //virtual functions to define
+    bool checkIntersections() override;
+    vector<DoublePair> getIntersections() override;
+    bool moveIntersectingPoints(vector<int> &uniquePoints, Pair &majorIntersection, int &nIntersections) override;
+
+    //additional functions
+    void wrapCoordinates(); //apply periodic boundary to coordinates
+
+    //additional variables
+    double pbcX, pbcY, pbcRX, pbcRY; //periodic boundary and reciprocals
+
+public:
+    //constructor
+    PeriodicGeometryOptimiser();
+
+    //setters
+    void setPeriodicBoundary(double x, double y, double rx, double ry);
+
+    //optimisation functions
+    int steepestDescent() override; //main geometry optimisation function
+};
+
+class HarmonicAperiodicGO: public AperiodicGeometryOptimiser {
+//harmonic, aperiodic
+private:
+    //virtual functions to define
+    void calculateBondForces() override;
+    void calculateAngleForces() override;
+    double calculateBondEnergies() override;
+    double calculateAngleEnergies() override;
 
     //additional functions
     Crd2d bondForce(Crd2d &cI, Crd2d &cJ, double &r0);
@@ -99,5 +132,46 @@ public:
     void setPotentialParameters(double harmK, vector<double> harmR0);
 };
 
+class HarmonicPeriodicGO: public PeriodicGeometryOptimiser {
+//harmonic, periodic
+private:
+    //virtual functions to define
+    void calculateBondForces() override;
+    void calculateAngleForces() override;
+    double calculateBondEnergies() override;
+    double calculateAngleEnergies() override;
+
+    //additional functions
+    Crd2d bondForce(Crd2d &cI, Crd2d &cJ, double &r0);
+
+    //potential parameters
+    double forceK, energyK; //force constant and energy constant
+    vector<double> r0; //potential minimum
+
+public:
+    HarmonicPeriodicGO();
+    void setPotentialParameters(double harmK, vector<double> harmR0);
+};
+
+class KeatingAperiodicGO: public AperiodicGeometryOptimiser {
+//keating, aperiodic
+private:
+    //virtual functions to define
+    void calculateBondForces() override;
+    void calculateAngleForces() override;
+    double calculateBondEnergies() override;
+    double calculateAngleEnergies() override;
+
+    //additional functions
+    Crd2d bondForce(Crd2d &cI, Crd2d &cJ);
+    void angleForce(Crd2d &cI, Crd2d &cJ, Crd2d &cK, Crd2d &fI, Crd2d &fJ, Crd2d &fK);
+
+    //potential parameters
+    double aSq, aSq_2, kBondForce, kAngleForce, kBondEnergy, kAngleEnergy;
+
+public:
+    KeatingAperiodicGO();
+    void setPotentialParameters(double a, double alpha, double beta);
+};
 
 #endif //DUAL_SWITCH_GEOMETRYOPT_H

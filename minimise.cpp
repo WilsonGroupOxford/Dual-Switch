@@ -176,7 +176,6 @@ bool HarmonicMinimiser::resolveInitialIntersections() {
 
     //resolve intersections
     resolved=moveIntersectingPoints(uniquePoints, majorIntersection, nIntersectingLines);
-    cout<<"*** "<<resolved<<endl;
     return resolved;
 }
 

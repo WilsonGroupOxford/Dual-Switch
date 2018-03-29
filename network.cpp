@@ -1113,9 +1113,19 @@ int Network::localMinimisationPeriodic(vector<int> &switchTriangles) {
     for(int i=0; i<fixedRegion.size(); ++i) fixedRegion[i]=globalToLocalMap[fixedRegion[i]];
 
     //minimise
-    HarmonicMinimiser localMinimiser(localCoordinates,localHarmonicPairs,fixedRegion,localHarmonicR0,harmonicK,localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt,localLinePairs);
-    int status=localMinimiser.steepestDescent(periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
-    localCoordinates=localMinimiser.getMinimisedCoordinates();
+//    HarmonicMinimiser localMinimiser(localCoordinates,localHarmonicPairs,fixedRegion,localHarmonicR0,harmonicK,localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt,localLinePairs);
+//    int status=localMinimiser.steepestDescent(periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+//    localCoordinates=localMinimiser.getMinimisedCoordinates();
+    vector<Trio> emptyAngles; //placeholder
+    emptyAngles.clear();
+    HarmonicPeriodicGO optimiser;
+    optimiser.setCoordinates(localCoordinates);
+    optimiser.setSystemParameters(localHarmonicPairs,emptyAngles,fixedRegion,localLinePairs);
+    optimiser.setPotentialParameters(harmonicK,localHarmonicR0);
+    optimiser.setOptisationParameters(localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt,true);
+    optimiser.setPeriodicBoundary(periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+    int status=optimiser.steepestDescent();
+    localCoordinates=optimiser.getMinimisedCoordinates();
 
     //update global coordinates
     for(int i=0; i<nMinNodes; ++i) nodes[minimisationRegion[i]].coordinate=localCoordinates[i];
@@ -1215,7 +1225,7 @@ int Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
     optimiser.setCoordinates(localCoordinates);
     optimiser.setSystemParameters(localHarmonicPairs,emptyAngles,fixedRegion,localLinePairs);
     optimiser.setPotentialParameters(harmonicK,localHarmonicR0);
-    optimiser.setOptisationParameters(localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt);
+    optimiser.setOptisationParameters(localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt,true);
     int status=optimiser.steepestDescent();
     localCoordinates=optimiser.getMinimisedCoordinates();
 
@@ -1284,16 +1294,30 @@ void Network::globalMinimisationPeriodic() {
     fixedRegion.clear();
 
     //minimise
-    HarmonicMinimiser globalMinimiser(globalCoordinates,globalHarmonicPairs,fixedRegion,globalHarmonicR0,harmonicK,globalGeomOptCC,geomOptLineSearchInc,globalGeomOptMaxIt,linePairs);
-    int status=globalMinimiser.steepestDescent(periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
-    globalCoordinates=globalMinimiser.getMinimisedCoordinates();
+//    HarmonicMinimiser globalMinimiser(globalCoordinates,globalHarmonicPairs,fixedRegion,globalHarmonicR0,harmonicK,globalGeomOptCC,geomOptLineSearchInc,globalGeomOptMaxIt,linePairs);
+//    int status=globalMinimiser.steepestDescent(periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+//    globalCoordinates=globalMinimiser.getMinimisedCoordinates();
+//
+    vector<Trio> emptyAngles; //placeholder
+    emptyAngles.clear();
+    HarmonicPeriodicGO optimiser;
+    optimiser.setCoordinates(globalCoordinates);
+    optimiser.setSystemParameters(globalHarmonicPairs,emptyAngles,fixedRegion,linePairs);
+    optimiser.setPotentialParameters(harmonicK,globalHarmonicR0);
+    optimiser.setOptisationParameters(globalGeomOptCC,geomOptLineSearchInc,globalGeomOptMaxIt,true);
+    optimiser.setPeriodicBoundary(periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+    int status=optimiser.steepestDescent();
+    globalCoordinates=optimiser.getMinimisedCoordinates();
+
 
     //update coordinates
     for(int i=0; i<nNodes; ++i) nodes[i].coordinate=globalCoordinates[i];
 
     //get global energy and iterations
-    geomOptEnergy=globalMinimiser.getEnergy();
-    geomOptIterations=globalMinimiser.getIterations();
+//    geomOptEnergy=globalMinimiser.getEnergy();
+//    geomOptIterations=globalMinimiser.getIterations();
+    geomOptEnergy=optimiser.getEnergy();
+    geomOptIterations=optimiser.getIterations();
 
     return;
 }
@@ -1369,7 +1393,7 @@ void Network::globalMinimisationAperiodic() {
     optimiser.setCoordinates(globalCoordinates);
     optimiser.setSystemParameters(globalHarmonicPairs,emptyAngles,fixedRegion,linePairs);
     optimiser.setPotentialParameters(harmonicK,globalHarmonicR0);
-    optimiser.setOptisationParameters(globalGeomOptCC,geomOptLineSearchInc,globalGeomOptMaxIt);
+    optimiser.setOptisationParameters(globalGeomOptCC,geomOptLineSearchInc,globalGeomOptMaxIt,true);
     int status=optimiser.steepestDescent();
     globalCoordinates=optimiser.getMinimisedCoordinates();
 
@@ -1860,11 +1884,21 @@ void Network::geometryOptimiseAtomicNetworkAperiodic() {
     }
 
     //minimise
-    KeatingMinimiser keatingMinimise(vertexCoordinates,atomicGeomOptCC,atomicLineSearchInc,atomicGeomOptMaxIt);
-    keatingMinimise.setParameters(keatingA,keatingAlpha,keatingBeta);
-    keatingMinimise.setInteractions(vertexBonds,vertexAngles,edges);
-    atomicGeomOptStatus=keatingMinimise.steepestDescent();
-    vertexCoordinates=keatingMinimise.getMinimisedCoordinates();
+//    KeatingMinimiser keatingMinimise(vertexCoordinates,atomicGeomOptCC,atomicLineSearchInc,atomicGeomOptMaxIt);
+//    keatingMinimise.setParameters(keatingA,keatingAlpha,keatingBeta);
+//    keatingMinimise.setInteractions(vertexBonds,vertexAngles,edges);
+//    atomicGeomOptStatus=keatingMinimise.steepestDescent();
+//    vertexCoordinates=keatingMinimise.getMinimisedCoordinates();
+
+    vector<int> emptyFixed; //placeholder
+    emptyFixed.clear();
+    KeatingAperiodicGO optimiser;
+    optimiser.setCoordinates(vertexCoordinates);
+    optimiser.setSystemParameters(vertexBonds,vertexAngles,emptyFixed,edges);
+    optimiser.setPotentialParameters(keatingA,keatingAlpha,keatingBeta);
+    optimiser.setOptisationParameters(atomicGeomOptCC,atomicLineSearchInc,atomicGeomOptMaxIt,false);
+    atomicGeomOptStatus=optimiser.steepestDescent();
+    vertexCoordinates=optimiser.getMinimisedCoordinates();
 
     //check entire atomic network for overlaps
     vector<Pair> checkEdges;
@@ -1882,8 +1916,10 @@ void Network::geometryOptimiseAtomicNetworkAperiodic() {
 
     //if no intersections get energy and iteration information and update coordinates
     if(atomicGeomOptStatus==1){
-        atomicGeomOptEnergy=keatingMinimise.getEnergy();
-        atomicGeomOptIterations=keatingMinimise.getIterations();
+//        atomicGeomOptEnergy=keatingMinimise.getEnergy();
+//        atomicGeomOptIterations=keatingMinimise.getIterations();
+        atomicGeomOptEnergy=optimiser.getEnergy();
+        atomicGeomOptIterations=optimiser.getIterations();
         for(int i=0; i<nVertices; ++i) vertices[i].coordinate=vertexCoordinates[i];
     }
 

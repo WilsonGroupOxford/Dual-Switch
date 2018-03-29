@@ -12,12 +12,13 @@ void GeometryOptimiser::setCoordinates(vector<Crd2d> crds) {
     return;
 }
 
-void GeometryOptimiser::setOptisationParameters(double convCriteria, double lineInc, int maxIt) {
+void GeometryOptimiser::setOptisationParameters(double convCriteria, double lineInc, int maxIt, bool res) {
     //set parameters for optimisation functions
     convergenceCriteria=convCriteria;
     lineSearchIncrement=lineInc;
     maxIterations=maxIt;
     nPnts=coordinates.size();
+    resolveStructure=res;
     zeroForce=Crd2d();
     zeroForces.resize(nPnts,Crd2d());
     return;
@@ -36,28 +37,6 @@ void GeometryOptimiser::setSystemParameters(vector<Pair> sysBonds, vector<Trio> 
     nFixed=fixed.size();
     nIntersectionLines=intersectionLines.size();
     return;
-}
-
-int GeometryOptimiser::steepestDescent() {
-    //steepest descent optimisation
-
-    //check/resolve initial structure and if invalid do not perform optimisation
-    if(checkInitialStructure()==0) return 0;
-
-    iterations=0; //intialise iteration counter
-    previousEnergy=numeric_limits<double>::infinity(); //set initial energy to infinite
-    deltaEZeroCount=0; //initialise no energy change counter
-    complete=false; //calculation complete
-    converged=false; //calculation converged
-    for(;;){
-        calculateForces();
-        lineSearch();
-        checkConvergence();
-//        cout<<iterations<<" "<<currentEnergy<<endl;
-        if(complete) break;
-    }
-
-    return 1;
 }
 
 void GeometryOptimiser::calculateForces() {
@@ -143,33 +122,39 @@ int GeometryOptimiser::getIterations() {
     return iterations;
 }
 
-//##### LINE INTERSECTION RESOLVER BASE CLASS ######
-IntersectionResolver::IntersectionResolver() {
-    return;
+int GeometryOptimiser::checkInitialStructure() {
+    //check no initial line overlaps
+    bool resolved=!checkIntersections();
+    if(resolved) return 1;
+    if(resolveStructure) {
+        resolved = resolveIntersections();
+        if (resolved) return 1;
+    }
+    return 0;
 }
 
-bool IntersectionResolver::resolveIntersections() {
+bool GeometryOptimiser::resolveIntersections() {
     //attempt to resolve intersections, return success or failure
 
     //get intersecting lines
-    vector<DoublePair> intersectingLines=getIntersections();
-    int nIntersectingLines=intersectingLines.size();
+    vector<DoublePair> intersectingLines = getIntersections();
+    int nIntersectingLines = intersectingLines.size();
 
     //find main line common to all
     int majorIntersectionCount;
-    Pair majorIntersection=findMajorIntersection(intersectingLines, majorIntersectionCount);
+    Pair majorIntersection = findMajorIntersection(intersectingLines, majorIntersectionCount);
 
     //abort if not one major line
-    if(majorIntersectionCount!=nIntersectingLines) return false;
+    if (majorIntersectionCount != nIntersectingLines) return false;
 
     //get list of unique points
-    vector<int> uniquePoints=findUniquePoints(intersectingLines,majorIntersection);
+    vector<int> uniquePoints = findUniquePoints(intersectingLines, majorIntersection);
 
     //resolve intersections
     return moveIntersectingPoints(uniquePoints, majorIntersection, nIntersectingLines);
 }
 
-Pair IntersectionResolver::findMajorIntersection(vector<DoublePair> &intersectingLines, int &majorCount) {
+Pair GeometryOptimiser::findMajorIntersection(vector<DoublePair> &intersectingLines, int &majorCount) {
     //find intersecting line common to all
     map<string,int> lineMap;
     Pair line1, line2;
@@ -204,7 +189,7 @@ Pair IntersectionResolver::findMajorIntersection(vector<DoublePair> &intersectin
     return majorLine;
 }
 
-vector<int> IntersectionResolver::findUniquePoints(vector<DoublePair> &intersectingLines, Pair &majorLine) {
+vector<int> GeometryOptimiser::findUniquePoints(vector<DoublePair> &intersectingLines, Pair &majorLine) {
     //find unique list of points which might need to move
     vector<int> points;
     points.clear();
@@ -224,65 +209,35 @@ vector<int> IntersectionResolver::findUniquePoints(vector<DoublePair> &intersect
     return points;
 }
 
-/*###### HARMONIC APERIODIC OPTIMISER ######
- * takes single k and list of r0, no minimum image convention */
+//###### APERIODIC OPTIMISATION BASE CLASS ######
 
-HarmonicAperiodicGO::HarmonicAperiodicGO(){
-    return;
-};
-
-void HarmonicAperiodicGO::setPotentialParameters(double harmK, vector<double> harmR0) {
-    //take single force constant and list of r0
-    forceK=harmK;
-    energyK=0.5*forceK;
-    r0=harmR0;
+AperiodicGeometryOptimiser::AperiodicGeometryOptimiser() {
     return;
 }
 
-int HarmonicAperiodicGO::checkInitialStructure() {
-    //check no initial line overlaps
-    bool resolved=!checkIntersections();
-    if(resolved) return 1;
-    resolved=resolveIntersections();
-    cout<<"*** "<<resolved<<endl;
-    if(resolved) return 1;
-    return 0;
-}
+int AperiodicGeometryOptimiser::steepestDescent() {
+    //steepest descent optimisation
 
-void HarmonicAperiodicGO::calculateBondForces() {
-    //calculate force from all bonds
-    Crd2d force;
-    int a, b;
-    for(int i=0; i<nBonds; ++i){
-        a=bonds[i].a;
-        b=bonds[i].b;
-        force=bondForce(coordinates[a], coordinates[b], r0[i]);
-        forces[a].x=forces[a].x-force.x;
-        forces[a].y=forces[a].y-force.y;
-        forces[b].x=forces[b].x+force.x;
-        forces[b].y=forces[b].y+force.y;
+    //check/resolve initial structure and if invalid do not perform optimisation
+    if(checkInitialStructure()==0) return 0;
+
+    iterations=0; //intialise iteration counter
+    previousEnergy=numeric_limits<double>::infinity(); //set initial energy to infinite
+    deltaEZeroCount=0; //initialise no energy change counter
+    complete=false; //calculation complete
+    converged=false; //calculation converged
+    for(;;){
+        calculateForces();
+        lineSearch();
+        checkConvergence();
+//        cout<<iterations<<" "<<currentEnergy<<endl;
+        if(complete) break;
     }
-    return;
+
+    return 1;
 }
 
-Crd2d HarmonicAperiodicGO::bondForce(Crd2d &cI, Crd2d &cJ, double &r0) {
-    //force of single bond, F=-k(r-r0)
-    Crd2d f; //force
-    Vec2d fDir(cI,cJ); //force direction
-    double fMag, r; //magnitude of force, distance between points
-    r=sqrt(fDir.x*fDir.x+fDir.y*fDir.y);
-    fMag=forceK*(r-r0)/r; //divide by r to cancel length built into fDir
-    f.x=-fMag*fDir.x;
-    f.y=-fMag*fDir.y;
-    return f;
-}
-
-void HarmonicAperiodicGO::calculateAngleForces() {
-    //no angle potential
-    return;
-}
-
-bool HarmonicAperiodicGO::checkIntersections() {
+bool AperiodicGeometryOptimiser::checkIntersections() {
     //check for overlap of lines
     bool intersection=false;
     for(int i=0; i<nIntersectionLines; ++i){
@@ -293,25 +248,7 @@ bool HarmonicAperiodicGO::checkIntersections() {
     return intersection;
 }
 
-double HarmonicAperiodicGO::calculateBondEnergies() {
-    //calculate energies of all bonds, U=0.5*k*(r-r0)^2
-    double energy=0.0;
-    double r;
-    Vec2d v;
-    for(int i=0; i<nBonds; ++i){
-        v=Vec2d(coordinates[bonds[i].a],coordinates[bonds[i].b]);
-        r=sqrt(v.x*v.x+v.y*v.y);
-        energy=energy+energyK*pow((r-r0[i]),2);
-    }
-    return energy;
-}
-
-double HarmonicAperiodicGO::calculateAngleEnergies() {
-    //no angle contribution
-    return 0.0;
-}
-
-vector<DoublePair> HarmonicAperiodicGO::getIntersections() {
+vector<DoublePair> AperiodicGeometryOptimiser::getIntersections() {
     vector<DoublePair> intersectingLines; //stored intersecting pairs
     intersectingLines.clear();
     for(int i=0; i<nIntersectionLines; ++i){
@@ -323,8 +260,7 @@ vector<DoublePair> HarmonicAperiodicGO::getIntersections() {
     return intersectingLines;
 }
 
-bool HarmonicAperiodicGO::moveIntersectingPoints(vector<int> &uniquePoints, Pair &majorIntersection,
-                                               int &nIntersections) {
+bool AperiodicGeometryOptimiser::moveIntersectingPoints(vector<int> &uniquePoints, Pair &majorIntersection, int &nIntersections) {
     //move points above and below major intersection and check if resolved intersections
 
     //set up axes relative to major intersection
@@ -435,4 +371,436 @@ bool HarmonicAperiodicGO::moveIntersectingPoints(vector<int> &uniquePoints, Pair
     for(int i=0; i<pointsBelowX.size(); ++i) coordinates[pointsBelowX[i]]=initialCrdsBelowX[i]; //revert
 
     return false;
+}
+
+//###### PERIODIC OPTIMISATION BASE CLASS ######
+
+PeriodicGeometryOptimiser::PeriodicGeometryOptimiser() {
+    return;
+}
+
+void PeriodicGeometryOptimiser::setPeriodicBoundary(double x, double y, double rx, double ry) {
+    //periodic boundary conditions for minimum image convention and wrapping
+    pbcX=x;
+    pbcY=y;
+    pbcRX=rx;
+    pbcRY=ry;
+    return;
+}
+
+int PeriodicGeometryOptimiser::steepestDescent() {
+    //steepest descent optimisation
+
+    //check/resolve initial structure and if invalid do not perform optimisation
+    if(checkInitialStructure()==0) return 0;
+
+    iterations=0; //intialise iteration counter
+    previousEnergy=numeric_limits<double>::infinity(); //set initial energy to infinite
+    deltaEZeroCount=0; //initialise no energy change counter
+    complete=false; //calculation complete
+    converged=false; //calculation converged
+    for(;;){
+        calculateForces();
+        lineSearch();
+        checkConvergence();
+//        cout<<iterations<<" "<<currentEnergy<<endl;
+        if(complete) break;
+    }
+
+    wrapCoordinates();
+
+    return 1;
+}
+
+bool PeriodicGeometryOptimiser::checkIntersections() {
+    bool intersection=false;
+    Crd2d line1a, line1b, line2a, line2b; //coordinates as minimum images to crd 1a
+    for(int i=0; i<nIntersectionLines; ++i){
+        line1a=coordinates[intersectionLines[i].a];
+        line1b=minimumImageCrd(line1a,coordinates[intersectionLines[i].b],pbcX,pbcY,pbcRX,pbcRY);
+        line2a=minimumImageCrd(line1a,coordinates[intersectionLines[i].c],pbcX,pbcY,pbcRX,pbcRY);
+        line2b=minimumImageCrd(line1a,coordinates[intersectionLines[i].d],pbcX,pbcY,pbcRX,pbcRY);
+        intersection=properIntersectionLines(line1a,line1b,line2a,line2b);
+        if(intersection) return true;
+    }
+    return intersection;
+}
+
+vector<DoublePair> PeriodicGeometryOptimiser::getIntersections() {
+    vector<DoublePair> intersectingLines; //stored intersecting pairs
+    intersectingLines.clear();
+    Crd2d line1a, line1b, line2a, line2b; //coordinates as minimum images to crd 1a
+    for(int i=0; i<nIntersectionLines; ++i){
+        line1a=coordinates[intersectionLines[i].a];
+        line1b=minimumImageCrd(line1a,coordinates[intersectionLines[i].b],pbcX,pbcY,pbcRX,pbcRY);
+        line2a=minimumImageCrd(line1a,coordinates[intersectionLines[i].c],pbcX,pbcY,pbcRX,pbcRY);
+        line2b=minimumImageCrd(line1a,coordinates[intersectionLines[i].d],pbcX,pbcY,pbcRX,pbcRY);
+        if(properIntersectionLines(line1a,line1b,line2a,line2b)) intersectingLines.push_back(intersectionLines[i]);
+    }
+    return intersectingLines;
+}
+
+bool PeriodicGeometryOptimiser::moveIntersectingPoints(vector<int> &uniquePoints, Pair &majorIntersection,
+                                               int &nIntersections) {
+    //move points above and below major intersection and check if resolved intersections
+    //take minimum images relative to major point a
+
+
+    //set up axes relative to major intersection
+    Vec2d xAxis(coordinates[majorIntersection.a],coordinates[majorIntersection.b],pbcX,pbcY,pbcRX,pbcRY);
+    xAxis.normalise();
+    Vec2d yAxis=xAxis;
+    yAxis.rotate90();
+
+    //find points above and below x-axis (major intersection)
+    vector<int> pointsAboveX, pointsBelowX;
+    vector<Crd2d> initialCrdsAboveX, initialCrdsBelowX; //save intial coordinates if need to revert
+    Vec2d posVec;
+    pointsAboveX.clear();
+    pointsBelowX.clear();
+    initialCrdsAboveX.clear();
+    initialCrdsBelowX.clear();
+    double dotProd;
+    for(int i=0; i<uniquePoints.size(); ++i){
+        posVec=Vec2d(coordinates[majorIntersection.a],coordinates[uniquePoints[i]],pbcX,pbcY,pbcRX,pbcRY);
+        dotProd=vectorDotProduct(yAxis,posVec);
+        if(dotProd>0.0){
+            pointsAboveX.push_back(uniquePoints[i]);
+            initialCrdsAboveX.push_back(coordinates[uniquePoints[i]]);
+        }
+        else{
+            pointsBelowX.push_back(uniquePoints[i]);
+            initialCrdsBelowX.push_back(coordinates[uniquePoints[i]]);
+        }
+    }
+
+    //try moving points above x to below x
+    for(int i=0; i<pointsAboveX.size();++i){
+        posVec=Vec2d(coordinates[majorIntersection.a],coordinates[pointsAboveX[i]],pbcX,pbcY,pbcRX,pbcRY);
+        dotProd=vectorDotProduct(yAxis,posVec);
+        Vec2d direction=yAxis;
+        direction.scale(dotProd*1.01);
+        direction.invert();
+        coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x+direction.x;
+        coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y+direction.y;
+    }
+
+    //check if successful and if not revert and move points below x to above x
+    bool moveSuccessful=!checkIntersections();
+    if(moveSuccessful) return true;
+
+    for(int i=0; i<pointsAboveX.size(); ++i) coordinates[pointsAboveX[i]]=initialCrdsAboveX[i]; //revert
+    for(int i=0; i<pointsBelowX.size();++i){//move points below x to above
+        posVec=Vec2d(coordinates[majorIntersection.a],coordinates[pointsBelowX[i]],pbcX,pbcY,pbcRX,pbcRY);
+        dotProd=vectorDotProduct(yAxis,posVec);
+        Vec2d direction=yAxis;
+        direction.scale(dotProd*1.01);
+        direction.invert();
+        coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x+direction.x;
+        coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y+direction.y;
+    }
+
+    //check if successful and if not revert and try moving slightly in x-direction
+    moveSuccessful=!checkIntersections();
+    if(moveSuccessful) return true;
+
+
+    for (int i = 0; i < pointsBelowX.size(); ++i) coordinates[pointsBelowX[i]] = initialCrdsBelowX[i]; //revert
+    //move above to below again, but shift in x
+    Vec2d directionInc=xAxis;
+    directionInc.scale(0.1);
+    for(int i=0; i<pointsAboveX.size();++i){
+        posVec=Vec2d(coordinates[majorIntersection.a],coordinates[pointsAboveX[i]],pbcX,pbcY,pbcRX,pbcRY);
+        dotProd=vectorDotProduct(yAxis,posVec);
+        Vec2d direction=yAxis;
+        direction.scale(dotProd*1.01);
+        direction.invert();
+        coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x+direction.x-xAxis.x;
+        coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y+direction.y-xAxis.y;
+    }
+    //increment along in x direction
+    for(int j=0; j<=20; ++j){
+        moveSuccessful=!checkIntersections();
+        if(moveSuccessful) return true;
+        for(int i=0; i<pointsAboveX.size();++i){
+            coordinates[pointsAboveX[i]].x=coordinates[pointsAboveX[i]].x+directionInc.x;
+            coordinates[pointsAboveX[i]].y=coordinates[pointsAboveX[i]].y+directionInc.y;
+        }
+    }
+
+    //if not successful try same with points below
+    for(int i=0; i<pointsAboveX.size(); ++i) coordinates[pointsAboveX[i]]=initialCrdsAboveX[i]; //revert
+    //move above to below again, but shift in x
+    for(int i=0; i<pointsBelowX.size();++i){
+        posVec=Vec2d(coordinates[majorIntersection.a],coordinates[pointsBelowX[i]],pbcX,pbcY,pbcRX,pbcRY);
+        dotProd=vectorDotProduct(yAxis,posVec);
+        Vec2d direction=yAxis;
+        direction.scale(dotProd*1.01);
+        direction.invert();
+        coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x+direction.x-xAxis.x;
+        coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y+direction.y-xAxis.y;
+    }
+    //increment along in x direction
+    for(int j=0; j<=20; ++j){
+        moveSuccessful=!checkIntersections();
+        if(moveSuccessful) return true;
+        for(int i=0; i<pointsBelowX.size();++i){
+            coordinates[pointsBelowX[i]].x=coordinates[pointsBelowX[i]].x+directionInc.x;
+            coordinates[pointsBelowX[i]].y=coordinates[pointsBelowX[i]].y+directionInc.y;
+        }
+    }
+
+    //if not successful revert
+    for(int i=0; i<pointsBelowX.size(); ++i) coordinates[pointsBelowX[i]]=initialCrdsBelowX[i]; //revert
+
+    return false;
+}
+
+void PeriodicGeometryOptimiser::wrapCoordinates() {
+    //apply periodic boundary conditions to coordinates
+    for(int i=0; i<nPnts; ++i){
+        coordinates[i].x=coordinates[i].x-pbcX*floor(coordinates[i].x*pbcRX);
+        coordinates[i].y=coordinates[i].y-pbcY*floor(coordinates[i].y*pbcRY);
+    }
+    return;
+}
+
+/*###### HARMONIC APERIODIC OPTIMISER ######
+ * takes single k and list of r0, no minimum image convention */
+
+HarmonicAperiodicGO::HarmonicAperiodicGO(){
+    return;
+};
+
+void HarmonicAperiodicGO::setPotentialParameters(double harmK, vector<double> harmR0) {
+    //take single force constant and list of r0
+    forceK=harmK;
+    energyK=0.5*forceK;
+    r0=harmR0;
+    return;
+}
+
+void HarmonicAperiodicGO::calculateBondForces() {
+    //calculate force from all bonds
+    Crd2d force;
+    int a, b;
+    for(int i=0; i<nBonds; ++i){
+        a=bonds[i].a;
+        b=bonds[i].b;
+        force=bondForce(coordinates[a], coordinates[b], r0[i]);
+        forces[a].x=forces[a].x-force.x;
+        forces[a].y=forces[a].y-force.y;
+        forces[b].x=forces[b].x+force.x;
+        forces[b].y=forces[b].y+force.y;
+    }
+    return;
+}
+
+Crd2d HarmonicAperiodicGO::bondForce(Crd2d &cI, Crd2d &cJ, double &r0) {
+    //force of single bond, F=-k(r-r0)
+    Crd2d f; //force
+    Vec2d fDir(cI,cJ); //force direction
+    double fMag, r; //magnitude of force, distance between points
+    r=sqrt(fDir.x*fDir.x+fDir.y*fDir.y);
+    fMag=forceK*(r-r0)/r; //divide by r to cancel length built into fDir
+    f.x=-fMag*fDir.x;
+    f.y=-fMag*fDir.y;
+    return f;
+}
+
+void HarmonicAperiodicGO::calculateAngleForces() {
+    //no angle potential
+    return;
+}
+
+double HarmonicAperiodicGO::calculateBondEnergies() {
+    //calculate energies of all bonds, U=0.5*k*(r-r0)^2
+    double energy=0.0;
+    double r;
+    Vec2d v;
+    for(int i=0; i<nBonds; ++i){
+        v=Vec2d(coordinates[bonds[i].a],coordinates[bonds[i].b]);
+        r=sqrt(v.x*v.x+v.y*v.y);
+        energy=energy+energyK*pow((r-r0[i]),2);
+    }
+    return energy;
+}
+
+double HarmonicAperiodicGO::calculateAngleEnergies() {
+    //no angle contribution
+    return 0.0;
+}
+
+/*###### HARMONIC PERIODIC OPTIMISER ######
+ * takes single k and list of r0, no minimum image convention */
+
+HarmonicPeriodicGO::HarmonicPeriodicGO(){
+    return;
+};
+
+void HarmonicPeriodicGO::setPotentialParameters(double harmK, vector<double> harmR0) {
+    //take single force constant and list of r0
+    forceK=harmK;
+    energyK=0.5*forceK;
+    r0=harmR0;
+    return;
+}
+
+void HarmonicPeriodicGO::calculateBondForces() {
+    //calculate force from all bonds
+    Crd2d force;
+    int a, b;
+    for(int i=0; i<nBonds; ++i){
+        a=bonds[i].a;
+        b=bonds[i].b;
+        force=bondForce(coordinates[a], coordinates[b], r0[i]);
+        forces[a].x=forces[a].x-force.x;
+        forces[a].y=forces[a].y-force.y;
+        forces[b].x=forces[b].x+force.x;
+        forces[b].y=forces[b].y+force.y;
+    }
+    return;
+}
+
+Crd2d HarmonicPeriodicGO::bondForce(Crd2d &cI, Crd2d &cJ, double &r0) {
+    //force of single bond, F=-k(r-r0)
+    Crd2d f; //force
+    Vec2d fDir(cI,cJ); //force direction
+    fDir.x=fDir.x-pbcX*round(fDir.x*pbcRX); //apply mic
+    fDir.y=fDir.y-pbcY*round(fDir.y*pbcRY); //apply mic
+    double fMag, r; //magnitude of force, distance between points
+    r=sqrt(fDir.x*fDir.x+fDir.y*fDir.y);
+    fMag=forceK*(r-r0)/r; //divide by r to cancel length built into fDir
+    f.x=-fMag*fDir.x;
+    f.y=-fMag*fDir.y;
+    return f;
+}
+
+void HarmonicPeriodicGO::calculateAngleForces() {
+    //no angle potential
+    return;
+}
+
+double HarmonicPeriodicGO::calculateBondEnergies() {
+    //calculate energies of all bonds, U=0.5*k*(r-r0)^2
+    double energy=0.0;
+    double r;
+    Vec2d v;
+    for(int i=0; i<nBonds; ++i){
+        v=Vec2d(coordinates[bonds[i].a],coordinates[bonds[i].b]);
+        v.x=v.x-pbcX*round(v.x*pbcRX);
+        v.y=v.y-pbcY*round(v.y*pbcRY);
+        r=sqrt(v.x*v.x+v.y*v.y);
+        energy=energy+energyK*pow((r-r0[i]),2);
+    }
+    return energy;
+}
+
+double HarmonicPeriodicGO::calculateAngleEnergies() {
+    //no angle contribution
+    return 0.0;
+}
+
+/*###### KEATING APERIODIC OPTIMISER ######
+ * takes a, alpha, beta, no minimum image convention */
+
+KeatingAperiodicGO::KeatingAperiodicGO(){
+    return;
+};
+
+void KeatingAperiodicGO::setPotentialParameters(double a, double alpha, double beta) {
+    //take single force constant and list of r0
+    aSq=a*a;
+    aSq_2=aSq/2.0;
+    kBondForce=(3.0/4.0)*(alpha/aSq);
+    kAngleForce=(3.0/4.0)*(beta/aSq);
+    kBondEnergy=(3.0/16.0)*(alpha/aSq);
+    kAngleEnergy=(3.0/8.0)*(beta/aSq);
+    return;
+}
+
+void KeatingAperiodicGO::calculateBondForces() {
+    //calculate force from all bonds
+    Crd2d force;
+    int a, b;
+    for(int i=0; i<nBonds; ++i){
+        a=bonds[i].a;
+        b=bonds[i].b;
+        force=bondForce(coordinates[a], coordinates[b]);
+        forces[a].x=forces[a].x-force.x;
+        forces[a].y=forces[a].y-force.y;
+        forces[b].x=forces[b].x+force.x;
+        forces[b].y=forces[b].y+force.y;
+    }
+    return;
+}
+
+Crd2d KeatingAperiodicGO::bondForce(Crd2d &cI, Crd2d &cJ) {
+    //force of single bond, F=-k(r^2-a^2)r
+    Crd2d f; //force
+    Vec2d fDir(cI,cJ); //force direction
+    double fMag; //magnitude of force
+    fMag=kBondForce*(fDir.x*fDir.x+fDir.y*fDir.y-aSq);
+    f.x=-fMag*fDir.x;
+    f.y=-fMag*fDir.y;
+    return f;
+}
+
+void KeatingAperiodicGO::calculateAngleForces() {
+    //calculate force due to angles
+    Crd2d forceI, forceJ, forceK; //force on points i--j--k
+    int a,b,c;
+    for(int i=0; i<nAngles; ++i){
+        a=angles[i].a;
+        b=angles[i].b;
+        c=angles[i].c;
+        angleForce(coordinates[a],coordinates[b],coordinates[c],forceI,forceJ,forceK);
+        forces[a].x=forces[a].x+forceI.x;
+        forces[a].y=forces[a].y+forceI.y;
+        forces[b].x=forces[b].x+forceJ.x;
+        forces[b].y=forces[b].y+forceJ.y;
+        forces[c].x=forces[c].x+forceK.x;
+        forces[c].y=forces[c].y+forceK.y;
+    }
+    return;
+}
+
+void KeatingAperiodicGO::angleForce(Crd2d &cI, Crd2d &cJ, Crd2d &cK, Crd2d &fI, Crd2d &fJ, Crd2d &fK) {
+    //force of single angle, f=-k(r1*r2+a^2/2)r1r2
+    Vec2d vecRij(cJ,cI), vecRkj(cJ,cK); //vectors to edge points from central point, convention Rij=ri-rj
+    double rij, rkj; //lengths of vectors
+    vecRij.normalise(rij); //normalise and get length
+    vecRkj.normalise(rkj); //normalise and get length
+    double cosTheta=vecRij.x*vecRkj.x+vecRij.y*vecRkj.y; //get angle between vectors
+    double fMag=-kAngleForce*(rij*rkj*cosTheta+aSq_2); //neglect r1r2 multiplication as need to divide by one in direction
+    fI.x=(fMag*rkj)*(vecRkj.x-cosTheta*vecRij.x);
+    fI.y=(fMag*rkj)*(vecRkj.y-cosTheta*vecRij.y);
+    fK.x=(fMag*rij)*(vecRij.x-cosTheta*vecRkj.x);
+    fK.y=(fMag*rij)*(vecRij.y-cosTheta*vecRkj.y);
+    fJ.x=-fI.x-fK.x;
+    fJ.y=-fI.y-fK.y;
+    return;
+}
+
+double KeatingAperiodicGO::calculateBondEnergies() {
+    //calculate energies of all bonds, U=k*(r^2-a^2)^2
+    double energy=0.0;
+    Vec2d v;
+    for(int i=0; i<nBonds; ++i){
+        v=Vec2d(coordinates[bonds[i].a],coordinates[bonds[i].b]);
+        energy=energy+kBondEnergy*pow((v.x*v.x+v.y*v.y-aSq),2);
+    }
+    return energy;
+}
+
+double KeatingAperiodicGO::calculateAngleEnergies() {
+    //calculate energies of all angles, U=k*(r1.r2+a^2/2)^2
+    double energy=0.0;
+    Vec2d vij, vkj; //convention Rij=ri-rj
+    for(int i=0; i<nAngles; ++i){
+        vij=Vec2d(coordinates[angles[i].b],coordinates[angles[i].a]);
+        vkj=Vec2d(coordinates[angles[i].b],coordinates[angles[i].c]);
+        energy=energy+kAngleEnergy*pow((vij.x*vkj.x+vij.y*vkj.y+aSq_2),2);
+    }
+    return energy;
 }
