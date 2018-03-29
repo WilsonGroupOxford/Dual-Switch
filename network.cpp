@@ -1216,12 +1216,15 @@ int Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
     vector<Trio> emptyAngles; //placeholder
     emptyAngles.clear();
     HarmonicAperiodicGO optimiser;
+//    KeatingAperiodicBondOnlyGO optimiser;
     optimiser.setCoordinates(localCoordinates);
     optimiser.setSystemParameters(localHarmonicPairs,emptyAngles,fixedRegion,localLinePairs);
     optimiser.setPotentialParameters(harmonicK,localHarmonicR0);
     optimiser.setOptisationParameters(localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt,true);
     int status=optimiser.steepestDescent();
     localCoordinates=optimiser.getMinimisedCoordinates();
+
+
 
     //update global coordinates
     for(int i=0; i<nMinNodes; ++i) nodes[minimisationRegion[i]].coordinate=localCoordinates[i];
@@ -1374,6 +1377,7 @@ void Network::globalMinimisationAperiodic() {
     vector<Trio> emptyAngles; //placeholder
     emptyAngles.clear();
     HarmonicAperiodicGO optimiser;
+//    KeatingAperiodicBondOnlyGO optimiser;
     optimiser.setCoordinates(globalCoordinates);
     optimiser.setSystemParameters(globalHarmonicPairs,emptyAngles,fixedRegion,linePairs);
     optimiser.setPotentialParameters(harmonicK,globalHarmonicR0);

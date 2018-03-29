@@ -918,3 +918,73 @@ double KeatingPeriodicGO::calculateAngleEnergies() {
     }
     return energy;
 }
+
+/*###### KEATING APERIODIC BOND ONLY OPTIMISER ######
+ * takes range of a, single alpha, only bond term not angle, no minimum image convention */
+
+KeatingAperiodicBondOnlyGO::KeatingAperiodicBondOnlyGO(){
+    return;
+};
+
+void KeatingAperiodicBondOnlyGO::setPotentialParameters(double alpha, vector<double> a) {
+    //take list of minimum distances and alpha
+    int n=a.size();
+    aSq.resize(n);
+    aSq_2.resize(n);
+    kBondForce.resize(n);
+    kBondEnergy.resize(n);
+    for(int i=0; i<n; ++i){
+        aSq[i]=a[i]*a[i];
+        aSq_2[i]=0.5*aSq[i];
+        kBondForce[i]=(3.0/4.0)*(alpha/aSq[i]);
+        kBondEnergy[i]=(3.0/16.0)*(alpha/aSq[i]);
+    }
+    return;
+}
+
+void KeatingAperiodicBondOnlyGO::calculateBondForces() {
+    //calculate force from all bonds
+    Crd2d force;
+    int a, b;
+    for(int i=0; i<nBonds; ++i){
+        a=bonds[i].a;
+        b=bonds[i].b;
+        force=bondForce(coordinates[a], coordinates[b], i);
+        forces[a].x=forces[a].x-force.x;
+        forces[a].y=forces[a].y-force.y;
+        forces[b].x=forces[b].x+force.x;
+        forces[b].y=forces[b].y+force.y;
+    }
+    return;
+}
+
+Crd2d KeatingAperiodicBondOnlyGO::bondForce(Crd2d &cI, Crd2d &cJ, int bond) {
+    //force of single bond, F=-k(r^2-a^2)r
+    Crd2d f; //force
+    Vec2d fDir(cI,cJ); //force direction
+    double fMag=kBondForce[bond]*(fDir.x*fDir.x+fDir.y*fDir.y-aSq[bond]); //magnitude of force
+    f.x=-fMag*fDir.x;
+    f.y=-fMag*fDir.y;
+    return f;
+}
+
+void KeatingAperiodicBondOnlyGO::calculateAngleForces() {
+    //no angle contribution
+    return;
+}
+
+double KeatingAperiodicBondOnlyGO::calculateBondEnergies() {
+    //calculate energies of all bonds, U=k*(r^2-a^2)^2
+    double energy=0.0;
+    Vec2d v;
+    for(int i=0; i<nBonds; ++i){
+        v=Vec2d(coordinates[bonds[i].a],coordinates[bonds[i].b]);
+        energy=energy+kBondEnergy[i]*pow((v.x*v.x+v.y*v.y-aSq[i]),2);
+    }
+    return energy;
+}
+
+double KeatingAperiodicBondOnlyGO::calculateAngleEnergies() {
+    //no angle contribution
+    return 0.0;
+}

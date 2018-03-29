@@ -5,9 +5,9 @@ IO
 Network Properties
 1          periodic
 0           use existing network (P)
-20 20     starting bulk hexagonal lattice dimensions (even for periodic)
+50 50     starting bulk hexagonal lattice dimensions (even for periodic)
 4 10      ring size limits
--0.3      target alpha
+0.3      target alpha
 0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics 0.1 0.35 0.15 0.25 0.15
 --------------------------------------
 Simulation Parameters
@@ -19,14 +19,14 @@ Simulation Parameters
 --------------------------------------
 Dual Potential Model and Geometry Optimisation
 1.42        si-si distance
-25.880         harmonic k
+25          harmonic k
 1           locally minimise every step
 100         maximum iterations
 0.1         convergence criteria
 0.001        line search step size
 1           globally minimise after simulation end
-1000       maximum iterations
-0.01         convergence criteria
+10000       maximum iterations
+0.001         convergence criteria
 --------------------------------------
 Analysis Tools
 1           convert to atomic network

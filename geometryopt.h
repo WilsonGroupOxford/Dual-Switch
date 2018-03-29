@@ -195,4 +195,24 @@ public:
     void setPotentialParameters(double a, double alpha, double beta);
 };
 
+class KeatingAperiodicBondOnlyGO: public AperiodicGeometryOptimiser {
+//keating, aperiodic, no angle term
+private:
+    //virtual functions to define
+    void calculateBondForces() override;
+    void calculateAngleForces() override;
+    double calculateBondEnergies() override;
+    double calculateAngleEnergies() override;
+
+    //additional functions
+    Crd2d bondForce(Crd2d &cI, Crd2d &cJ, int bond);
+
+    //potential parameters
+    vector<double> aSq, aSq_2, kBondForce, kBondEnergy;
+
+public:
+    KeatingAperiodicBondOnlyGO();
+    void setPotentialParameters(double alpha, vector<double> a);
+};
+
 #endif //DUAL_SWITCH_GEOMETRYOPT_H
