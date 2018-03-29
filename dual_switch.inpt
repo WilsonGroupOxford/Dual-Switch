@@ -1,17 +1,17 @@
 IO
 ./silica    input prefix
-./test_optt output prefix
+./test_opt output prefix
 --------------------------------------
 Network Properties
 0          periodic
 0           use existing network (P)
-20 20     starting bulk hexagonal lattice dimensions (even for periodic)
+50 50     starting bulk hexagonal lattice dimensions (even for periodic)
 4 10      ring size limits
-0.3      target alpha
+-0.3      target alpha
 0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics 0.1 0.35 0.15 0.25 0.15
 --------------------------------------
 Simulation Parameters
-0 3         random seed range (inclusive)
+0 0         random seed range (inclusive)
 0.0001      temperature
 100000        maximum proposed monte carlo moves
 0.00001        energy convergence criteria

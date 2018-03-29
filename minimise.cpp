@@ -88,13 +88,6 @@ Crd2d HarmonicMinimiser::harmonicForce(Crd2d &c1, Crd2d &c2, double &r0, double 
     fMag=k*(r-r0)/r; //divide by r to cancel length built into fDir
     f.x=-fMag*fDir.x;
     f.y=-fMag*fDir.y;
-//    Crd2d f, fDir; //force and direction
-//    double fMag; //magnitude of force
-//    fDir.x=c2.x-c1.x;
-//    fDir.y=c2.y-c1.y;
-//    fMag=(3.0/4.0)*k*(fDir.x*fDir.x+fDir.y*fDir.y-r0*r0)/(r0*r0);
-//    f.x=-fMag*fDir.x;
-//    f.y=-fMag*fDir.y;
     return f;
 }
 
@@ -102,8 +95,6 @@ double HarmonicMinimiser::harmonicEnergy(Crd2d &c1, Crd2d &c2, double &r0, doubl
     //U=0.5k(r-r0)^2
     double r=sqrt(pow((c2.x-c1.x),2)+pow((c2.y-c1.y),2));
     return 0.5*k*pow((r-r0),2);
-//    Vec2d v(c1,c2);
-//    return (3.0/16.0)*k*pow((v.x*v.x+v.y*v.y-r0*r0),2)/(r0*r0);
 }
 
 bool HarmonicMinimiser::checkIntersections() {
@@ -185,7 +176,7 @@ bool HarmonicMinimiser::resolveInitialIntersections() {
 
     //resolve intersections
     resolved=moveIntersectingPoints(uniquePoints, majorIntersection, nIntersectingLines);
-
+    cout<<"*** "<<resolved<<endl;
     return resolved;
 }
 

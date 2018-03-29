@@ -1206,9 +1206,18 @@ int Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
     for(int i=0; i<fixedRegion.size(); ++i) fixedRegion[i]=globalToLocalMap[fixedRegion[i]];
 
     //minimise
-    HarmonicMinimiser localMinimiser(localCoordinates,localHarmonicPairs,fixedRegion,localHarmonicR0,harmonicK,localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt,localLinePairs);
-    int status=localMinimiser.steepestDescent();
-    localCoordinates=localMinimiser.getMinimisedCoordinates();
+//    HarmonicMinimiser localMinimiser(localCoordinates,localHarmonicPairs,fixedRegion,localHarmonicR0,harmonicK,localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt,localLinePairs);
+//    int status=localMinimiser.steepestDescent();
+//    localCoordinates=localMinimiser.getMinimisedCoordinates();
+    vector<Trio> emptyAngles; //placeholder
+    emptyAngles.clear();
+    HarmonicAperiodicGO optimiser;
+    optimiser.setCoordinates(localCoordinates);
+    optimiser.setSystemParameters(localHarmonicPairs,emptyAngles,fixedRegion,localLinePairs);
+    optimiser.setPotentialParameters(harmonicK,localHarmonicR0);
+    optimiser.setOptisationParameters(localGeomOptCC,geomOptLineSearchInc,localGeomOptMaxIt);
+    int status=optimiser.steepestDescent();
+    localCoordinates=optimiser.getMinimisedCoordinates();
 
     //update global coordinates
     for(int i=0; i<nMinNodes; ++i) nodes[minimisationRegion[i]].coordinate=localCoordinates[i];
@@ -1350,16 +1359,28 @@ void Network::globalMinimisationAperiodic() {
     fixedRegion.clear();
 
     //minimise
-    HarmonicMinimiser globalMinimiser(globalCoordinates,globalHarmonicPairs,fixedRegion,globalHarmonicR0,harmonicK,globalGeomOptCC,geomOptLineSearchInc,globalGeomOptMaxIt,linePairs);
-    int status=globalMinimiser.steepestDescent();
-    globalCoordinates=globalMinimiser.getMinimisedCoordinates();
+//    HarmonicMinimiser globalMinimiser(globalCoordinates,globalHarmonicPairs,fixedRegion,globalHarmonicR0,harmonicK,globalGeomOptCC,geomOptLineSearchInc,globalGeomOptMaxIt,linePairs);
+//    int status=globalMinimiser.steepestDescent();
+//    globalCoordinates=globalMinimiser.getMinimisedCoordinates();
+
+    vector<Trio> emptyAngles; //placeholder
+    emptyAngles.clear();
+    HarmonicAperiodicGO optimiser;
+    optimiser.setCoordinates(globalCoordinates);
+    optimiser.setSystemParameters(globalHarmonicPairs,emptyAngles,fixedRegion,linePairs);
+    optimiser.setPotentialParameters(harmonicK,globalHarmonicR0);
+    optimiser.setOptisationParameters(globalGeomOptCC,geomOptLineSearchInc,globalGeomOptMaxIt);
+    int status=optimiser.steepestDescent();
+    globalCoordinates=optimiser.getMinimisedCoordinates();
 
     //update coordinates
     for(int i=0; i<nNodes; ++i) nodes[i].coordinate=globalCoordinates[i];
 
     //get global energy and iterations
-    geomOptEnergy=globalMinimiser.getEnergy();
-    geomOptIterations=globalMinimiser.getIterations();
+//    geomOptEnergy=globalMinimiser.getEnergy();
+//    geomOptIterations=globalMinimiser.getIterations();
+    geomOptEnergy=optimiser.getEnergy();
+    geomOptIterations=optimiser.getIterations();
 
     return;
 }

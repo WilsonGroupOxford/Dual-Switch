@@ -32,31 +32,71 @@ protected:
     vector<Crd2d> forces; //force for each coordinate
 
     //steepest descent functions
-    int steepestDescent(); //main geometry optimisation function
-    virtual int checkInitialStructure(); //ensure starting structure is valid
+    virtual int checkInitialStructure()=0; //ensure starting structure is valid
     void calculateForces(); //from all contributions
     virtual void calculateBondForces()=0; //forces due to bonds
     virtual void calculateAngleForces()=0; //forces due to angles
     void lineSearch(); //find energy minimum along direction of force
     double calculateEnergy(); //of system
-    virtual double checkIntersections(); //check for line overlaps
+    virtual bool checkIntersections()=0; //check for line overlaps
     virtual double calculateBondEnergies()=0; //energies due to bonds
     virtual double calculateAngleEnergies()=0; //energies due to angles
     void checkConvergence(); //check if optimisation converged or hit limits
 
 public:
-    //constructor
-    GeometryOptimiser(vector<Crd2d> crds, double convCriteria, double lineInc, int maxIt); //coordinates and optimisation search parameters
+    //constructors
+    GeometryOptimiser();
 
     //setters
+    void setCoordinates(vector<Crd2d> crds);
+    void setOptisationParameters(double convCriteria, double lineInc, int maxIt);
     void setSystemParameters(vector<Pair> sysBonds, vector<Trio> sysAngles, vector<int> sysFixed, vector<DoublePair> sysInt);
-    virtual void setPotentialParameters()=0;
+    //set potential parameters in concrete class
 
     //getters
     vector<Crd2d> getMinimisedCoordinates(); //return minimised coordinates
     double getEnergy(); //return final energy
     int getIterations(); //number of iterations before optimisation completed
 
+    //optimisation functions
+    int steepestDescent(); //main geometry optimisation function
+};
+
+class IntersectionResolver {
+    //base class for finding and resolving line intersections
+protected:
+    virtual vector<DoublePair> getIntersections()=0;
+    Pair findMajorIntersection(vector<DoublePair> &intersectingLines, int &majorCount);
+    vector<int> findUniquePoints(vector<DoublePair> &intersectingLines, Pair &majorLine);
+    virtual bool moveIntersectingPoints(vector<int> &uniquePoints, Pair &majorIntersection, int &nIntersections)=0;
+
+public:
+    IntersectionResolver(); //default constructor
+    bool resolveIntersections(); //attempt to resolve line intersections
+};
+
+class HarmonicAperiodicGO: public GeometryOptimiser, public IntersectionResolver {
+private:
+    //virtual functions to define
+    int checkInitialStructure() override;
+    void calculateBondForces() override;
+    void calculateAngleForces() override;
+    bool checkIntersections() override;
+    double calculateBondEnergies() override;
+    double calculateAngleEnergies() override;
+    vector<DoublePair> getIntersections() override;
+    bool moveIntersectingPoints(vector<int> &uniquePoints, Pair &majorIntersection, int &nIntersections) override;
+
+    //additional functions
+    Crd2d bondForce(Crd2d &cI, Crd2d &cJ, double &r0);
+
+    //potential parameters
+    double forceK, energyK; //force constant and energy constant
+    vector<double> r0; //potential minimum
+
+public:
+    HarmonicAperiodicGO();
+    void setPotentialParameters(double harmK, vector<double> harmR0);
 };
 
 
