@@ -419,7 +419,7 @@ bool PeriodicGeometryOptimiser::checkIntersections() {
         line1a=coordinates[intersectionLines[i].a];
         line1b=minimumImageCrd(line1a,coordinates[intersectionLines[i].b],pbcX,pbcY,pbcRX,pbcRY);
         line2a=minimumImageCrd(line1a,coordinates[intersectionLines[i].c],pbcX,pbcY,pbcRX,pbcRY);
-        line2b=minimumImageCrd(line1a,coordinates[intersectionLines[i].d],pbcX,pbcY,pbcRX,pbcRY);
+        line2b=minimumImageCrd(line2a,coordinates[intersectionLines[i].d],pbcX,pbcY,pbcRX,pbcRY);
         intersection=properIntersectionLines(line1a,line1b,line2a,line2b);
         if(intersection) return true;
     }
@@ -434,7 +434,7 @@ vector<DoublePair> PeriodicGeometryOptimiser::getIntersections() {
         line1a=coordinates[intersectionLines[i].a];
         line1b=minimumImageCrd(line1a,coordinates[intersectionLines[i].b],pbcX,pbcY,pbcRX,pbcRY);
         line2a=minimumImageCrd(line1a,coordinates[intersectionLines[i].c],pbcX,pbcY,pbcRX,pbcRY);
-        line2b=minimumImageCrd(line1a,coordinates[intersectionLines[i].d],pbcX,pbcY,pbcRX,pbcRY);
+        line2b=minimumImageCrd(line2a,coordinates[intersectionLines[i].d],pbcX,pbcY,pbcRX,pbcRY);
         if(properIntersectionLines(line1a,line1b,line2a,line2b)) intersectingLines.push_back(intersectionLines[i]);
     }
     return intersectingLines;

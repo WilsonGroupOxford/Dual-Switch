@@ -178,7 +178,7 @@ void Network::initialisePeriodicLattice() {
         if(stagger) xCrd=xStagger;
         else xCrd=0.0;
         for(int n=0; n<xNodes; ++n){
-            nodeIndex=layer*yNodes+n;
+            nodeIndex=layer*xNodes+n;
             nodes[nodeIndex].coordinate.y=layer*yOffset;
             nodes[nodeIndex].coordinate.x=xCrd;
             xCrd=xCrd+r66;
@@ -1530,7 +1530,7 @@ void Network::checkGeometry() {
             line1a=nodes[linePairs[i].a].coordinate;
             line1b=minimumImageCrd(line1a,nodes[linePairs[i].b].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
             line2a=minimumImageCrd(line1a,nodes[linePairs[i].c].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
-            line2b=minimumImageCrd(line1a,nodes[linePairs[i].d].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+            line2b=minimumImageCrd(line2a,nodes[linePairs[i].d].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
             noIntersections=!properIntersectionLines(line1a,line1b,line2a,line2b);
             if(!noIntersections) break;
         }
@@ -1884,9 +1884,14 @@ void Network::geometryOptimiseAtomicNetworkPeriodic() {
         for(int j=0; j<vertexRings[i].size; ++j) checkEdges.push_back(Pair(vertexRings[i].chain[j],vertexRings[i].chain[j+1]));
     }
     bool intersection=false;
+    Crd2d line1a, line1b, line2a, line2b; //coordinates as minimum images to crd 1a
     for(int i=0; i<checkEdges.size()-1; ++i){//check all edges against each other
         for(int j=i+1; j<checkEdges.size(); ++j){
-            intersection=properIntersectionLines(vertexCoordinates[checkEdges[i].a],vertexCoordinates[checkEdges[i].b],vertexCoordinates[checkEdges[j].a],vertexCoordinates[checkEdges[j].b]);
+            line1a=vertexCoordinates[checkEdges[i].a];
+            line1b=minimumImageCrd(line1a,vertexCoordinates[checkEdges[i].b],periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+            line2a=minimumImageCrd(line1a,vertexCoordinates[checkEdges[j].a],periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+            line2b=minimumImageCrd(line2a,vertexCoordinates[checkEdges[j].b],periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+            intersection=properIntersectionLines(line1a,line1b,line2a,line2b);
             if (intersection) break;
         }
     }
@@ -2020,6 +2025,7 @@ void Network::writeDual() {
 
     string crdOutputFileName=outPrefix+"dual_coordinates.out";
     ofstream crdOutputFile(crdOutputFileName, ios::in|ios::trunc);
+    crdOutputFile<<fixed<<showpoint<<setprecision(6);
     for(int i=0; i<nNodes; ++i) writeFileCrd(crdOutputFile,nodes[i].coordinate);
     crdOutputFile.close();
 
@@ -2051,6 +2057,7 @@ void Network::writeAtomicNetwork() {
 
     string crdOutputFileName=outPrefix+"graph_coordinates.out";
     ofstream crdOutputFile(crdOutputFileName, ios::in|ios::trunc);
+    crdOutputFile<<fixed<<showpoint<<setprecision(6);
     for(int i=0; i<nVertices; ++i) writeFileCrd(crdOutputFile,vertices[i].coordinate);
     crdOutputFile.close();
 
@@ -2139,6 +2146,7 @@ void Network::writePeriodicDualNetwork() {
     //write dual coordinates and connectivities
     string crdOutputFileName=outPrefix+"dual_periodic_coordinates.out";
     ofstream crdOutputFile(crdOutputFileName, ios::in|ios::trunc);
+    crdOutputFile<<fixed<<showpoint<<setprecision(6);
     for(int i=0; i<nPeriodicNodes; ++i) writeFileCrd(crdOutputFile,periodicNodes[i].coordinate);
     crdOutputFile.close();
 
@@ -2251,6 +2259,7 @@ void Network::writePeriodicAtomicNetwork(vector<Node> &periodicNodes) {
     //write atomic coordinates
     string crdOutputFileName=outPrefix+"graph_periodic_coordinates.out";
     ofstream crdOutputFile(crdOutputFileName, ios::in|ios::trunc);
+    crdOutputFile<<fixed<<showpoint<<setprecision(6);
     for(int i=0; i<nPeriodicVertices; ++i) writeFileCrd(crdOutputFile,periodicVertices[i].coordinate);
     crdOutputFile.close();
 
@@ -2276,7 +2285,9 @@ void Network::writeGeometryOptimisationEnergy() {
 
     string geomOutputFileName=outPrefix+"analysis_geometry_opt.out";
     ofstream geomOutputFile(geomOutputFileName, ios::in|ios::trunc);
+    geomOutputFile<<fixed<<showpoint<<setprecision(6);
     writeFileValue(geomOutputFile, geomOptEnergy);
+    writeFileValue(geomOutputFile, geomOptIterations);
     geomOutputFile.close();
 
     return;
@@ -2287,11 +2298,13 @@ void Network::writeRingStatistics() {
 
     string rsOutputFileName=outPrefix+"analysis_ring_statistics.out";
     ofstream rsOutputFile(rsOutputFileName, ios::in|ios::trunc);
+    rsOutputFile<<fixed<<showpoint<<setprecision(6);
     writeFileRowVector(rsOutputFile,ringStatistics);
     rsOutputFile.close();
 
     string piOutputFileName=outPrefix+"analysis_pi_matrix.out";
     ofstream piOutputFile(piOutputFileName, ios::in|ios::trunc);
+    piOutputFile<<fixed<<showpoint<<setprecision(6);
     writeFileMatrix(piOutputFile,piMatrix);
     piOutputFile.close();
 
@@ -2302,6 +2315,7 @@ void Network::writeAboavWeaire() {
     //write alpha, mu and rsq
     string awOutputFileName=outPrefix+"analysis_aw.out";
     ofstream awOutputFile(awOutputFileName, ios::in|ios::trunc);
+    awOutputFile<<fixed<<showpoint<<setprecision(6);
     for(int i=0; i<3; ++i) writeFileValue(awOutputFile,aboavWeaireParams[i]);
     awOutputFile.close();
     return;
@@ -2312,6 +2326,7 @@ void Network::writeSpatialPartialRdfs() {
 
     string rdfOutputFileName=outPrefix+"analysis_spatial_rdfs.out";
     ofstream rdfOutputFile(rdfOutputFileName, ios::in|ios::trunc);
+    rdfOutputFile<<setprecision(8);
     writeFileLine(rdfOutputFile,"Partial RDF Analysis, bin width, nBins, densities, N and ideal distances");
     writeFileValue(rdfOutputFile,spatialRdfBinwidth);
     writeFileLine(rdfOutputFile,int(floor(spatialRdfExtent/spatialRdfBinwidth)));
@@ -2331,6 +2346,7 @@ void Network::writeTopoPartialRdfs() {
 
     string rdfOutputFileName=outPrefix+"analysis_topo_rdfs.out";
     ofstream rdfOutputFile(rdfOutputFileName, ios::in|ios::trunc);
+    rdfOutputFile<<setprecision(8);
     for(int i=0; i<nRingSizes; ++i){
             writeFileLine(rdfOutputFile,"Topological shell sizes for central node size: "+to_string(minRingSize+i));
             writeFileColVector(rdfOutputFile,topoRdfShellSizes[i]);
@@ -2347,6 +2363,7 @@ void Network::writeAssortativeMixing() {
     //write pearson correlation coefficient calculated in three different ways
     string amOutputFileName=outPrefix+"analysis_assortative_mix.out";
     ofstream amOutputFile(amOutputFileName, ios::in|ios::trunc);
+    amOutputFile<<fixed<<showpoint<<setprecision(6);
     writeFileRowVector(amOutputFile,assortativeMixing);
     amOutputFile.close();
     return;
@@ -2356,6 +2373,7 @@ void Network::writeAtomicGeometryOptimisation() {
     //write out success and final energy/iterations of atomic geometry optimisation
     string geomOutputFileName=outPrefix+"analysis_atomic_geometry_opt.out";
     ofstream geomOutputFile(geomOutputFileName, ios::in|ios::trunc);
+    geomOutputFile<<fixed<<showpoint<<setprecision(6);
     writeFileValue(geomOutputFile, atomicGeomOptStatus);
     if(atomicGeomOptStatus==1){
         writeFileValue(geomOutputFile, atomicGeomOptEnergy);

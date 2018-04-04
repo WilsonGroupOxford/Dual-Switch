@@ -8,7 +8,6 @@
 #include "customIO.h"
 #include "node.h"
 #include "vectorManip.h"
-#include "minimise.h"
 #include "geometryopt.h"
 
 using namespace std;
