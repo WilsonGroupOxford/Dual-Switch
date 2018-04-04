@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.path import Path
 import matplotlib.patches as patches
 import matplotlib._color_data as mcd
+import matplotlib.colors as colors
 import matplotlib.pylab as pylab
 import numpy as np
 
@@ -13,14 +14,15 @@ def main():
     fig = plt.figure()
     ax = fig.add_subplot(111)
     plt.axis('off')
+    plt.style.use('grayscale')
     if(dual):
-        dualCrds, dualCnxs, dualSizes, dualEdges=readDual(inPrefix,periodic)
+        dualCrds, dualCnxs, dualSizes, dualEdges, lattice=readDual(inPrefix,periodic)
         plotDual(dualCrds,dualCnxs,dualSizes,dualEdges,dualColours,dualLabels,fig,ax)
-        setDualAxesLimits(dualCrds,ax)
+        setDualAxesLimits(dualCrds,ax,lattice)
     if(graph):
-        graphCrds, graphRings, graphSizes, graphImage=readGraph(inPrefix,periodic)
+        graphCrds, graphRings, graphSizes, graphImage, lattice=readGraph(inPrefix,periodic)
         plotGraph(graphCrds,graphRings,graphSizes,graphImage,graphColours,fig,ax)
-        setGraphAxesLimits(graphCrds,graphRings,graphImage,ax)
+        setGraphAxesLimits(graphCrds,graphRings,graphImage,ax,lattice)
     if(saveFig): savePlot(inPrefix)
     displayPlot()
     return
@@ -63,11 +65,14 @@ def readDual(prefix,periodic):
     if(periodic):
         crdFileName=prefix+"_dual_periodic_coordinates.out"
         cnxFileName=prefix+"_dual_periodic_connectivity.out"
-    	sizeFileName=prefix+"_dual_periodic_size.out"
+        sizeFileName=prefix+"_dual_periodic_size.out"
+        latticeFileName=prefix+"_periodic_lattice_dim.out"
+        lattice=np.genfromtxt(latticeFileName)
     else:
         crdFileName=prefix+"_dual_coordinates.out"
         cnxFileName=prefix+"_dual_connectivity.out"
-    	sizeFileName=prefix+"_dual_size.out"
+        sizeFileName=prefix+"_dual_size.out"
+        lattice=np.array([1,1])
     crds=np.genfromtxt(crdFileName)
     sizeAndEdge=np.genfromtxt(sizeFileName,dtype=int)
     size=sizeAndEdge[:,0]
@@ -79,17 +84,20 @@ def readDual(prefix,periodic):
         cnxsList.append(cnx)
     cnxFile.close()
     cnxs=np.array(cnxsList)
-    return crds, cnxs, size, edge
+    return crds, cnxs, size, edge, lattice
 
 def readGraph(prefix,periodic):
     if(periodic):
         crdFileName=prefix+"_graph_periodic_coordinates.out"
         sizeFileName=prefix+"_graph_periodic_size.out"
         cnxFileName=prefix+"_graph_periodic_rings.out"
+        latticeFileName=prefix+"_periodic_lattice_dim.out"
+        lattice=np.genfromtxt(latticeFileName)
     else:
         crdFileName=prefix+"_graph_coordinates.out"
         sizeFileName=prefix+"_graph_size.out"
         cnxFileName=prefix+"_graph_rings.out"
+        lattice=np.array([1,1])
     crds=np.genfromtxt(crdFileName)
     size=np.genfromtxt(sizeFileName,usecols=0,dtype=int)
     cnxFile = open(cnxFileName, "r")
@@ -103,7 +111,7 @@ def readGraph(prefix,periodic):
         size=np.tile(size,9)
         image=np.genfromtxt(sizeFileName,usecols=1,dtype=int)
     else: image=np.ones(len(cnxsList))
-    return crds, cnxs, size, image
+    return crds, cnxs, size, image, lattice
 
 def plotDual(crds,cnxs,ringSizes,edges,colourFlag,labelFlag,fig,ax):
     for cnxList in cnxs:
@@ -111,8 +119,8 @@ def plotDual(crds,cnxs,ringSizes,edges,colourFlag,labelFlag,fig,ax):
         for cnx1 in cnxList[1:]:
             if(cnx0<cnx1): plt.plot([crds[cnx0][0],crds[cnx1][0]],[crds[cnx0][1],crds[cnx1][1]],color="k",lw=0.5,zorder=2)
     if(colourFlag):
-    	colours=generateColours(ringSizes,edges,True)
-	plt.scatter(crds[:,0],crds[:,1],c=colours,s=2,zorder=3)
+        colours=generateColours(ringSizes,edges,True)
+        plt.scatter(crds[:,0],crds[:,1],c=colours,s=2,zorder=3)
     else: plt.scatter(crds[:,0],crds[:,1],c='k',s=2,zorder=3)
     if(labelFlag):
         for i,crd in enumerate(crds):
@@ -133,14 +141,15 @@ def plotGraph(crds,rings,ringSizes,graphImage,colourFlag,fig,ax):
        ax.add_patch(patch)
     return
 
-def setDualAxesLimits(crds,ax):
+def setDualAxesLimits(crds,ax,lat):
     limLb=np.amin(crds[:,0])-10
     limUb=np.amax(crds[:,0])+10
+    sf=lat[1]/lat[0]
     ax.set_xlim(limLb,limUb)
-    ax.set_ylim(limLb,limUb)
+    ax.set_ylim(limLb*sf,limUb*sf)
     return
 
-def setGraphAxesLimits(crds,rings,image,ax):
+def setGraphAxesLimits(crds,rings,image,ax,lat):
     n=len(rings)
     ringMask=np.zeros(n,dtype=bool)
     for i, im in enumerate(image):
@@ -150,30 +159,50 @@ def setGraphAxesLimits(crds,rings,image,ax):
         for crd in ring: crdMask[crd]=1
     limLb=np.amin(crds[crdMask,0])-25
     limUb=np.amax(crds[crdMask,0])+25
+    sf=lat[1]/lat[0]
     ax.set_xlim(limLb,limUb)
-    ax.set_ylim(limLb,limUb)
-    return;
+    ax.set_ylim(limLb*sf,limUb*sf)
+    return
 
 def generateColours(ringSizes,kRings=None,kFlag=False):
     nRings=ringSizes.size
     colours=[]
     colourList=['lightgreen',mcd.CSS4_COLORS['lightblue'],'xkcd:grey',mcd.CSS4_COLORS['salmon'],mcd.CSS4_COLORS['orange'],\
                         mcd.CSS4_COLORS['plum'],mcd.CSS4_COLORS['pink'],"gold","gold"]
+
+    colormapGreens=plt.cm.get_cmap("Greens")
+    colormapBlues=plt.cm.get_cmap("Blues")
+    colormapGreys=plt.cm.get_cmap("Greys")
+    colormapReds=plt.cm.get_cmap("Reds")
+    colormapOranges=plt.cm.get_cmap("YlOrBr")
+    colormapPurples=plt.cm.get_cmap("PuRd")
+    colormapPinks=plt.cm.get_cmap("RdPu")
+
+    green=colormapGreens(100)
+    blue=colormapBlues(150)
+    grey=colormapGreys(90)
+    red=colormapReds(105)
+    orange=colormapOranges(100)
+    purple=colormapPurples(100)
+    pink=colormapPinks(80)
+
+    colourList=[green,blue,grey,red,orange,purple,pink]
+
     if(kFlag):
         for i in range(nRings):
-	    if(int(ringSizes[i])<4 or kRings[i]==1): colours.append('black')
-	    else: colours.append(colourList[int(ringSizes[i])-4])
+            if(int(ringSizes[i])<4 or kRings[i]==1): colours.append('black')
+            else: colours.append(colourList[int(ringSizes[i])-4])
     else:
         for i in range(nRings):
-	    if(int(ringSizes[i])<4): colours.append('black')
-	    else: colours.append(colourList[int(ringSizes[i])-4])
+            if(int(ringSizes[i])<4): colours.append('black')
+            else: colours.append(colourList[int(ringSizes[i])-4])
     return colours
 
 def generateColourFilter(image):
     n=image.size
     filter=np.ones(n,dtype=float)
     for i, im in enumerate(image):
-        if(im!=1): filter[i]=0.5
+        if(im!=1): filter[i]=0.2
     return filter
 
 def generatePolygonDrawingCommands(min, max):

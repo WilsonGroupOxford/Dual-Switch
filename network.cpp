@@ -1557,7 +1557,6 @@ void Network::analyse(ofstream &logfile) {
     //unoptional analysis
     analyseRingStatistics();
     analyseAboavWeaire();
-
     //optional analysis
     if(convertToAtomic) convertDualToAtomicNetwork();
     if(convertToAtomic && atomicGeomOpt && periodic) geometryOptimiseAtomicNetworkPeriodic();
@@ -1880,6 +1879,7 @@ void Network::geometryOptimiseAtomicNetworkPeriodic() {
 
     //check entire atomic network for overlaps
     vector<Pair> checkEdges;
+    checkEdges.clear();
     for(int i=0; i<vertexRings.size(); ++i){//make list of edges, not unique but ok as will double check
         for(int j=0; j<vertexRings[i].size; ++j) checkEdges.push_back(Pair(vertexRings[i].chain[j],vertexRings[i].chain[j+1]));
     }
@@ -1978,6 +1978,7 @@ void Network::geometryOptimiseAtomicNetworkAperiodic() {
 
     //check entire atomic network for overlaps
     vector<Pair> checkEdges;
+    checkEdges.clear();
     for(int i=0; i<vertexRings.size(); ++i){//make list of edges, not unique but ok as will double check
         for(int j=0; j<vertexRings[i].size; ++j) checkEdges.push_back(Pair(vertexRings[i].chain[j],vertexRings[i].chain[j+1]));
     }
@@ -2089,7 +2090,7 @@ void Network::writePeriodicDualNetwork() {
     //only for visualisation, calculate periodic images of network for visualisation
 
     //set limits of visualisation region
-    double imageProportion=0.5;
+    double imageProportion=1;
     double leftLimit=-imageProportion*periodicBoxX, rightLimit=(1.0+imageProportion)*periodicBoxX;
     double bottomLimit=-imageProportion*periodicBoxY, topLimit=(1.0+imageProportion)*periodicBoxY;
 
@@ -2165,8 +2166,13 @@ void Network::writePeriodicDualNetwork() {
     }
     cnxOutputFile.close();
 
-    if(convertToAtomic) writePeriodicAtomicNetwork(periodicNodes);
+    string latticeOutputFileName=outPrefix+"periodic_lattice_dim.out";
+    ofstream latticeOutputFile(latticeOutputFileName, ios::in|ios::trunc);
+    writeFileValue(latticeOutputFile,periodicBoxX);
+    writeFileValue(latticeOutputFile,periodicBoxY);
+    latticeOutputFile.close();
 
+    if(convertToAtomic) writePeriodicAtomicNetwork(periodicNodes);
 
     return;
 }
