@@ -1,5 +1,8 @@
 cmake-build*/
 .idea*
 *.out
+*.log
 test*
 *.pdf
+*.png
+

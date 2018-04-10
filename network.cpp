@@ -740,6 +740,8 @@ vector<int> Network::pickDefinedTrianglePair(int m) {
 //        ref1=209;
 //    }
 
+    ref0=54;
+    ref1=45;
 
     commonNodes=getCommonValuesBetweenVectors(nodes[ref0].connections, nodes[ref1].connections);
     ref2=commonNodes[0];
@@ -2090,7 +2092,7 @@ void Network::writePeriodicDualNetwork() {
     //only for visualisation, calculate periodic images of network for visualisation
 
     //set limits of visualisation region
-    double imageProportion=1;
+    double imageProportion=1.0;
     double leftLimit=-imageProportion*periodicBoxX, rightLimit=(1.0+imageProportion)*periodicBoxX;
     double bottomLimit=-imageProportion*periodicBoxY, topLimit=(1.0+imageProportion)*periodicBoxY;
 

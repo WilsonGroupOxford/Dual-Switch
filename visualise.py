@@ -9,19 +9,19 @@ import numpy as np
 
 def main():
     inPrefix=sys.argv[1]
-    dual, graph, dualColours, graphColours, dualLabels, saveFig, periodic = visualisationType()
-    updateParams()
+    dual, graph, dualColours, graphColours, dualLabels, graphLabels, saveFig, periodic, figSize = visualisationType()
+    if(figSize): updateParamsFigSize()
+    else: updateParams()
     fig = plt.figure()
     ax = fig.add_subplot(111)
     plt.axis('off')
-    plt.style.use('grayscale')
     if(dual):
         dualCrds, dualCnxs, dualSizes, dualEdges, lattice=readDual(inPrefix,periodic)
         plotDual(dualCrds,dualCnxs,dualSizes,dualEdges,dualColours,dualLabels,fig,ax)
-        setDualAxesLimits(dualCrds,ax,lattice)
+        # setDualAxesLimits(dualCrds,ax,lattice)
     if(graph):
         graphCrds, graphRings, graphSizes, graphImage, lattice=readGraph(inPrefix,periodic)
-        plotGraph(graphCrds,graphRings,graphSizes,graphImage,graphColours,fig,ax)
+        plotGraph(graphCrds,graphRings,graphSizes,graphImage,graphColours,graphLabels,fig,ax)
         setGraphAxesLimits(graphCrds,graphRings,graphImage,ax,lattice)
     if(saveFig): savePlot(inPrefix)
     displayPlot()
@@ -29,7 +29,19 @@ def main():
 
 def updateParams():
     params = {'legend.fontsize': 8,
+              'font.size' : 8,
               'figure.figsize': (6.5, 6.5),
+              'axes.labelsize': 8,
+              'axes.titlesize': 8,
+              'xtick.labelsize': 8,
+              'ytick.labelsize': 8}
+    pylab.rcParams.update(params)
+    return
+
+def updateParamsFigSize():
+    params = {'legend.fontsize': 8,
+              'font.size' : 6,
+              'figure.figsize': (2.8, 2.8),
               'axes.labelsize': 8,
               'axes.titlesize': 8,
               'xtick.labelsize': 8,
@@ -43,8 +55,10 @@ def visualisationType():
     dualColours=False
     graphColours=False
     dualLabels=False
+    graphLabels=False
     save=False
     periodic=False
+    figSize=False
     if("d" in sys.argv[2]):
         dual=True
     if("g" in sys.argv[2]):
@@ -55,11 +69,15 @@ def visualisationType():
         graphColours=True
     if("l" in sys.argv[2]):
         dualLabels=True
+    if("L" in sys.argv[2]):
+        graphLabels=True
     if("s" in sys.argv[2]):
         save=True
     if("p" in sys.argv[2]):
         periodic=True
-    return dual, graph, dualColours, graphColours, dualLabels, save, periodic
+    if("f" in sys.argv[2]):
+        figSize=True
+    return dual, graph, dualColours, graphColours, dualLabels, graphLabels, save, periodic, figSize
 
 def readDual(prefix,periodic):
     if(periodic):
@@ -127,7 +145,7 @@ def plotDual(crds,cnxs,ringSizes,edges,colourFlag,labelFlag,fig,ax):
             plt.text(crd[0], crd[1],str(i))
     return
 
-def plotGraph(crds,rings,ringSizes,graphImage,colourFlag,fig,ax):
+def plotGraph(crds,rings,ringSizes,graphImage,colourFlag,labelFlag,fig,ax):
     colours=generateColours(ringSizes)
     polygonCmds=generatePolygonDrawingCommands(4,12);
     colourFilter=generateColourFilter(graphImage)
@@ -139,6 +157,22 @@ def plotGraph(crds,rings,ringSizes,graphImage,colourFlag,fig,ax):
        path=Path(ringCrds, polygonCmds[ringSizes[i]-4])
        patch = patches.PathPatch(path, facecolor=colours[i], lw=1, alpha=colourFilter[i])
        ax.add_patch(patch)
+       if(labelFlag and graphImage[i]==1):
+           ringCom=[np.average(ringCrds[:-1,0])-0.4,np.average(ringCrds[:-1,1])-0.4]
+           # print i, ringCrds[:,0].size
+           # if(i==54): ringCom[1]+=0.1
+           # if(i==64):
+           #     ringCom[0]+=0.1
+           #     ringCom[1]-=0.2
+           # if(i==53):
+           #     ringCom[0]+=0.40
+           #     ringCom[1]-=0.30
+           # if(i==65):
+           #     ringCom[0]+=0.30
+           #     ringCom[1]+=0.10
+           ringCom[0]+=0.7
+           ringCom[1]+=0.5
+           plt.text(ringCom[0],ringCom[1],str(ringCrds[:,0].size-1))
     return
 
 def setDualAxesLimits(crds,ax,lat):
@@ -157,9 +191,10 @@ def setGraphAxesLimits(crds,rings,image,ax,lat):
     crdMask=np.zeros(crds[:,0].size,dtype=bool)
     for ring in rings[ringMask]:
         for crd in ring: crdMask[crd]=1
-    limLb=np.amin(crds[crdMask,0])-25
-    limUb=np.amax(crds[crdMask,0])+25
+    limLb=np.amin(crds[crdMask,0])-5
+    limUb=np.amax(crds[crdMask,0])+5
     sf=lat[1]/lat[0]
+    sf=1
     ax.set_xlim(limLb,limUb)
     ax.set_ylim(limLb*sf,limUb*sf)
     return
@@ -217,8 +252,8 @@ def generatePolygonDrawingCommands(min, max):
     return allPolyCodes
 
 def savePlot(prefix):
-    filename=prefix+".pdf"
-    plt.savefig(filename, dpi=400, bbox_inches="tight")
+    filename=prefix+".png"
+    plt.savefig(filename, dpi=800, bbox_inches="tight")
     return
 
 def displayPlot():
