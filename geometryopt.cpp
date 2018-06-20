@@ -46,7 +46,6 @@ void GeometryOptimiser::calculateForces() {
     calculateBondForces(); //forces due to bonds
     calculateAngleForces(); //forces due to angles
     for(int i=0; i<nFixed; ++i) forces[fixed[i]]=zeroForce; //kill forces on fixed points
-
     return;
 }
 
@@ -230,7 +229,7 @@ int AperiodicGeometryOptimiser::steepestDescent() {
         calculateForces();
         lineSearch();
         checkConvergence();
-//        cout<<iterations<<" "<<currentEnergy<<endl;
+        cout<<iterations<<" "<<currentEnergy<<endl;
         if(complete) break;
     }
 

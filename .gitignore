@@ -5,4 +5,5 @@ cmake-build*/
 test*
 *.pdf
 *.png
+*temp
 

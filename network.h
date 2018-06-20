@@ -85,6 +85,7 @@ private:
     void initialisePeriodicLattice(); //make initial periodic hexagonal lattice
     void initialiseAperiodicLattice(); //make initial aperiodic hexagonal lattice
     void initialiseMonteCarlo(); //set up variables and initialise random number generators
+    void loadPeriodicLattice(); //read in existing periodic lattice
 
     //Random numbers
     int pickRandomNode(), pickRandomConnection(int nCnxs); //select node from network, select connection

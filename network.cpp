@@ -98,7 +98,12 @@ void Network::construct(ofstream &logfile) {
 
     initialiseNetworkProperties();
     initialisePotentialModel();
-    if(periodic) initialisePeriodicLattice();
+    if(load){
+        loadPeriodicLattice();
+        if(consistent) writeFileLine(logfile,name+" loaded successfully from "+inPrefix);
+        else writeFileLine(logfile,name+" loaded unsuccesfully from "+inPrefix);
+    }
+    else if(periodic) initialisePeriodicLattice();
     else initialiseAperiodicLattice();
     initialiseMonteCarlo();
     monteCarlo();
@@ -441,6 +446,71 @@ void Network::initialiseMonteCarlo() {
     return;
 }
 
+void Network::loadPeriodicLattice() {
+    //read in existing periodic lattice to start simulation
+
+    //number of nodes from main input file
+    nNodes=initialLatticeDimensions[0]*initialLatticeDimensions[1]; //set number of nodes as x*y
+
+    //read in dual data
+    string dualCnxFilename=inPrefix+"dual_connectivity.out";
+    string dualCrdFilename=inPrefix+"dual_coordinates.out";
+    ifstream dualCnxFile(dualCnxFilename,ios::in);
+    ifstream dualCrdFile(dualCrdFilename,ios::in);
+    vector< vector<int> > dualCnxs;
+    vector< vector<double> > dualCrds;
+    readFileAdaptiveMatrix(dualCnxFile,dualCnxs,nNodes);
+    readFileMatrix(dualCrdFile,dualCrds,nNodes,2);
+    dualCnxFile.close();
+    dualCrdFile.close();
+
+    //set up nodes of read in size, with ring size limits and not on edge
+    for(int i=0; i<nNodes; ++i){
+        nodes.push_back(Node(dualCnxs[i].size()-1,minRingSize,maxRingSize));
+    }
+
+    //set up coordinates
+    for(int i=0; i<nNodes; ++i){
+        nodes[i].coordinate.x=dualCrds[i][0];
+        nodes[i].coordinate.y=dualCrds[i][1];
+    }
+
+    //set up connections
+    for(int i=0; i<nNodes; ++i){
+        for(int j=1; j<dualCnxs[i].size(); ++j){
+            nodes[i].addConnection(dualCnxs[i][j]);
+        }
+    }
+
+    //set up periodic dimensions
+    int xNodes=initialLatticeDimensions[0], yNodes=initialLatticeDimensions[1]; //number of nodes in layer and number of layers
+    double r66=harmonicR0Matrix[6-minRingSize][6-minRingSize]; //ideal 6-6 distance
+    double xStagger=0.5*r66, yOffset=0.5*sqrt(3)*r66; //shift in x (intralayer), shift in y (interlayer)
+    periodicBoxX=r66*xNodes;
+    periodicBoxY=yOffset*yNodes;
+    rPeriodicBoxX=1.0/periodicBoxX;
+    rPeriodicBoxY=1.0/periodicBoxY;
+
+    //set up p vector and matrix
+    pVector.resize(nRingSizes,0);
+    pMatrix.resize(nRingSizes, (vector<int> (nRingSizes,0)));
+    int sizeIndexI, sizeIndexJ;
+    for(int i=0; i<nNodes; ++i){
+        sizeIndexI=nodes[i].sizeIndex;
+        pVector[sizeIndexI]=++pVector[sizeIndexI];
+        for(int j=0; j<nodes[i].size; ++j){
+            sizeIndexJ=nodes[nodes[i].connections[j]].sizeIndex;
+            pMatrix[sizeIndexI][sizeIndexJ]=++pMatrix[sizeIndexI][sizeIndexJ];
+        }
+    }
+
+    //calculate aboav-weaire fit
+    aboavWeaireParams=calculateAboavWeaireFit(pVector,pMatrix);
+    checkFidelity();
+
+    return;
+}
+
 //###### Construction monte carlo ######
 
 void Network::monteCarlo() {
@@ -740,8 +810,8 @@ vector<int> Network::pickDefinedTrianglePair(int m) {
 //        ref1=209;
 //    }
 
-    ref0=54;
-    ref1=45;
+    ref0=20;
+    ref1=13;
 
     commonNodes=getCommonValuesBetweenVectors(nodes[ref0].connections, nodes[ref1].connections);
     ref2=commonNodes[0];
@@ -965,7 +1035,7 @@ bool Network::acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int>
     aboavWeaireParams=trialAwParams;
     mcAcceptedMoves=++mcAcceptedMoves;
 
-//    cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
+    cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
 
     if(mcEnergy<=mcConvergence) return true;
     else return false;

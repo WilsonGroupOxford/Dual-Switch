@@ -21,6 +21,7 @@ def main():
         # setDualAxesLimits(dualCrds,ax,lattice)
     if(graph):
         graphCrds, graphRings, graphSizes, graphImage, lattice=readGraph(inPrefix,periodic)
+        # graphCrds[:,[0,1]]=graphCrds[:,[1,0]]
         plotGraph(graphCrds,graphRings,graphSizes,graphImage,graphColours,graphLabels,fig,ax)
         setGraphAxesLimits(graphCrds,graphRings,graphImage,ax,lattice)
     if(saveFig): savePlot(inPrefix)
@@ -40,7 +41,7 @@ def updateParams():
 
 def updateParamsFigSize():
     params = {'legend.fontsize': 8,
-              'font.size' : 6,
+              'font.size' : 4,
               'figure.figsize': (2.8, 2.8),
               'axes.labelsize': 8,
               'axes.titlesize': 8,
@@ -150,29 +151,41 @@ def plotGraph(crds,rings,ringSizes,graphImage,colourFlag,labelFlag,fig,ax):
     polygonCmds=generatePolygonDrawingCommands(4,12);
     colourFilter=generateColourFilter(graphImage)
     nCrds=crds[:,0].size
-    #plt.scatter(crds[:,0],crds[:,1],c='b',s=2,zorder=3)
+    # plt.scatter(crds[:,0],crds[:,1],c='b',s=2,zorder=3)
     for i, ring in enumerate(rings):
        ringCrds=np.array([crds[a] for a in ring])
        ringCrds=np.append(ringCrds, [ringCrds[0]], axis=0)
        path=Path(ringCrds, polygonCmds[ringSizes[i]-4])
-       patch = patches.PathPatch(path, facecolor=colours[i], lw=1, alpha=colourFilter[i])
+       patch = patches.PathPatch(path, facecolor=colours[i], lw=0.5, alpha=colourFilter[i])
        ax.add_patch(patch)
        if(labelFlag and graphImage[i]==1):
            ringCom=[np.average(ringCrds[:-1,0])-0.4,np.average(ringCrds[:-1,1])-0.4]
-           # print i, ringCrds[:,0].size
-           # if(i==54): ringCom[1]+=0.1
-           # if(i==64):
+           if(ringCrds[:,0].size-1)==4: ringCom[0]+=0.1
+           # print i, ringCrds[:,0].size-1
+           # if(i==4):
            #     ringCom[0]+=0.1
-           #     ringCom[1]-=0.2
-           # if(i==53):
-           #     ringCom[0]+=0.40
-           #     ringCom[1]-=0.30
-           # if(i==65):
-           #     ringCom[0]+=0.30
-           #     ringCom[1]+=0.10
-           ringCom[0]+=0.7
-           ringCom[1]+=0.5
+           #     # ringCom[1]+=0.15
+           # if(i==5):
+           #     ringCom[0]-=0.4
+           #     ringCom[1]+=0.15
+           # if(i==6):
+           #     ringCom[0]+=0.3
+           #     ringCom[1]-=0.1
+           # if(i==9):
+           #     # ringCom[0]-=0.1
+           #     ringCom[1]+=0.3
+           # if(i==10):
+           #     ringCom[0]-=0.1
+           #     ringCom[1]-=0.1
+           # ringCom[0]+=0.8
+           # ringCom[1]+=0.5
            plt.text(ringCom[0],ringCom[1],str(ringCrds[:,0].size-1))
+       elif(labelFlag):
+           print i, ringCrds[:,0].size-1
+           ringCom=[np.average(ringCrds[:-1,0])-0.4,np.average(ringCrds[:-1,1])-0.4]
+           if(ringCrds[:,0].size-1)==4: ringCom[0]+=0.1
+           plt.text(ringCom[0],ringCom[1],str(ringCrds[:,0].size-1),color="dimgrey")
+
     return
 
 def setDualAxesLimits(crds,ax,lat):
@@ -191,10 +204,12 @@ def setGraphAxesLimits(crds,rings,image,ax,lat):
     crdMask=np.zeros(crds[:,0].size,dtype=bool)
     for ring in rings[ringMask]:
         for crd in ring: crdMask[crd]=1
-    limLb=np.amin(crds[crdMask,0])-5
-    limUb=np.amax(crds[crdMask,0])+5
+    limLb=np.amin(crds[crdMask,0])-10
+    limUb=np.amax(crds[crdMask,0])+10
     sf=lat[1]/lat[0]
     sf=1
+    limLb=-12
+    limUb=24
     ax.set_xlim(limLb,limUb)
     ax.set_ylim(limLb*sf,limUb*sf)
     return

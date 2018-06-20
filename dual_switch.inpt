@@ -1,26 +1,26 @@
 IO
-./silica    input prefix
-./test output prefix
+./test_0    input prefix
+./test_load output prefix
 --------------------------------------
 Network Properties
 1          periodic
-0           use existing network (P)
-100 100     starting bulk hexagonal lattice dimensions
+1           use existing network (P)
+10 10     starting bulk hexagonal lattice dimensions
 4 8     ring size limits
-0.31      target alpha
+0.2      target alpha
 0.1 0.35 0.15 0.25 0.15     0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics 0.1 0.35 0.15 0.25 0.15
 --------------------------------------
 Simulation Parameters
-0 10         random seed range (inclusive)
-0.0002      temperature
-200000000        maximum proposed monte carlo moves
+0 0         random seed range (inclusive)
+0.0001      temperature
+0        maximum proposed monte carlo moves
 0.00001        energy convergence criteria
 10.0          alpha energy scaling factor
 --------------------------------------
 Dual Potential Model and Geometry Optimisation
 1.42        si-si distance
 25          harmonic k
-0           locally minimise every step
+1           locally minimise every step
 100         maximum iterations
 0.1         convergence criteria
 0.001        line search step size
@@ -39,7 +39,7 @@ Analysis Tools
 1           assortative mixing (P)
 --------------------------------------
 Atomic Potential Model and Geometry Optimisation
-0           globally minimise atomic network
+1           globally minimise atomic network
 1.42        Keating a parameter
 25.880      Keating alpha parameter
 5.176       Keating beta parameter
