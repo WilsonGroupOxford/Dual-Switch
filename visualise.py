@@ -85,8 +85,9 @@ def readDual(prefix,periodic):
         crdFileName=prefix+"_dual_periodic_coordinates.out"
         cnxFileName=prefix+"_dual_periodic_connectivity.out"
         sizeFileName=prefix+"_dual_periodic_size.out"
-        latticeFileName=prefix+"_periodic_lattice_dim.out"
-        lattice=np.genfromtxt(latticeFileName)
+#        latticeFileName=prefix+"_periodic_lattice_dim.out"
+#        lattice=np.genfromtxt(latticeFileName)
+        lattice=np.array([1,1])
     else:
         crdFileName=prefix+"_dual_coordinates.out"
         cnxFileName=prefix+"_dual_connectivity.out"
@@ -110,8 +111,9 @@ def readGraph(prefix,periodic):
         crdFileName=prefix+"_graph_periodic_coordinates.out"
         sizeFileName=prefix+"_graph_periodic_size.out"
         cnxFileName=prefix+"_graph_periodic_rings.out"
-        latticeFileName=prefix+"_periodic_lattice_dim.out"
-        lattice=np.genfromtxt(latticeFileName)
+        #latticeFileName=prefix+"_periodic_lattice_dim.out"
+        #lattice=np.genfromtxt(latticeFileName)
+        lattice=np.array([1,1])
     else:
         crdFileName=prefix+"_graph_coordinates.out"
         sizeFileName=prefix+"_graph_size.out"
@@ -208,8 +210,8 @@ def setGraphAxesLimits(crds,rings,image,ax,lat):
     limUb=np.amax(crds[crdMask,0])+10
     sf=lat[1]/lat[0]
     sf=1
-    limLb=-12
-    limUb=24
+    #limLb=-12
+    #limUb=24
     ax.set_xlim(limLb,limUb)
     ax.set_ylim(limLb*sf,limUb*sf)
     return

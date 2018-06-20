@@ -45,7 +45,7 @@ void Network::setMonteCarlo(int seed, double t, int moves, double conv, double a
     return;
 }
 
-void Network::setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt, bool aMix){
+void Network::setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt, bool rArea, bool aMix){
     //specify analysis to perform
     convertToAtomic=convert;
     if(periodic) periodicVisualisation=perVis;
@@ -55,6 +55,7 @@ void Network::setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, dou
     spatialRdfExtent=rdfExt;
     topoRdf=tRdf;
     topoRdfExtent=tRdfExt;
+    areaLaw=rArea;
     assortativeMix=aMix;
     return;
 }
@@ -1636,6 +1637,7 @@ void Network::analyse(ofstream &logfile) {
     if(periodic && spatialRdf) analysePartialSpatialRdfs();
     if(periodic && topoRdf) analysePartialTopologicalRdfs();
     if(assortativeMix) analyseAssortativity();
+    if(areaLaw) analyseRingAreas();
 
     writeFileLine(logfile,name+" analysed");
     return;
@@ -1883,6 +1885,41 @@ void Network::analyseAssortativity() {
     return;
 }
 
+void Network::analyseRingAreas() {
+    //calculate area of each ring in the network using shoelace method
+
+    //loop over each ring and calculate dimensionless area
+    ringAreas.resize(nRingSizes,0.0);
+    int polySize;
+    double area;
+    double scaleFactor=0.5/(keatingA*keatingA);
+    Crd2d polyOrigin, p0, p1;
+    for(int i=0; i<vertexRings.size(); ++i){
+        //recentre coordinates on first point with pbcs
+        polySize=vertexRings[i].size;
+        polyOrigin=nodes[vertexRings[i].id].coordinate;
+        vector<Crd2d> polygonCrds(polySize+1);
+        for(int j=0; j<polySize+1;++j){
+            polygonCrds[j]=recentreCrdByCrd(polyOrigin,vertices[vertexRings[i].chain[j]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+        }
+        //calculate area
+        area=0.0;
+        for(int j=0; j<vertexRings[i].size; ++j){
+            p0=polygonCrds[j];
+            p1=polygonCrds[j+1];
+            area+=p0.y*p1.x-p0.x*p1.y;
+//            cout<<p0.x<<" "<<p0.y<<", ";
+        }
+        area*=scaleFactor;
+        ringAreas[polySize-minRingSize]+=fabs(area);
+    }
+
+    //average areas
+    for(int i=0; i<nRingSizes; ++i){
+        ringAreas[i]/=(ringStatistics[i]*nRings);
+    }
+}
+
 void Network::geometryOptimiseAtomicNetworkPeriodic() {
     //optimise atomic network with keating potential
 
@@ -2089,6 +2126,7 @@ void Network::write() {
     if(periodic && topoRdf) writeTopoPartialRdfs();
     if(assortativeMix) writeAssortativeMixing();
     if(convertToAtomic && atomicGeomOpt) writeAtomicGeometryOptimisation();
+    if(areaLaw) writeRingAreas();
 
     return;
 }
@@ -2458,5 +2496,18 @@ void Network::writeAtomicGeometryOptimisation() {
         writeFileValue(geomOutputFile, atomicGeomOptIterations);
     }
     geomOutputFile.close();
+    return;
+}
+
+void Network::writeRingAreas(){
+    //write number of each ring size and average area of each
+    string areaOutputFileName=outPrefix+"analysis_ring_area.out";
+    ofstream areaOutputFile(areaOutputFileName, ios::in|ios::trunc);
+    vector<int> absRingNumbers(nRingSizes);
+    for(int i=0; i<nRingSizes; ++i) absRingNumbers[i]=ringStatistics[i]*nRings;
+    writeFileRowVector(areaOutputFile,absRingNumbers);
+    areaOutputFile<<fixed<<showpoint<<setprecision(6);
+    writeFileRowVector(areaOutputFile, ringAreas);
+    areaOutputFile.close();
     return;
 }

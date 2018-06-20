@@ -38,7 +38,7 @@ private:
     double mcTemperature, mcConvergence, mcAlphaScaleFactor; //temperature, properties convergence criteria, scale factor for energy functional
 
     //Analysis variables
-    bool convertToAtomic, periodicVisualisation, spatialRdf, topoRdf, assortativeMix; //convert dual to atomic network, make periodic image, spatial partial rdfs, topological rdfs, assortative mixing
+    bool convertToAtomic, periodicVisualisation, spatialRdf, topoRdf, assortativeMix, areaLaw; //convert dual to atomic network, make periodic image, spatial partial rdfs, topological rdfs, assortative mixing, ring areas
     double spatialRdfBinwidth, spatialRdfExtent, topoRdfExtent; //size of bin rdf, max distance for rdf
 
     //Atomic Geometry Optimisation
@@ -127,12 +127,14 @@ private:
     vector< vector<int> > topoRdfShellSizes; //number of rings in each shell for each ring size
     vector<Rdf> topoPartialRdfs; //rdfs for each ring size pair
     vector<double> assortativeMixing; //pearson cc via two methods
+    vector<double> ringAreas; //average areas of rings of different sizes
     int atomicGeomOptStatus, atomicGeomOptIterations; //whether optimised, number of iterations
     double atomicGeomOptEnergy; //final energy of geometry optimisation
 
     //###### Analysis functions ######
     void convertDualToAtomicNetwork(); //triangulate nodes to get atomic network
     void analyseRingStatistics(); //calculate ring statistics and normalise pi matrix
+    void analyseRingAreas(); //calculate ring areas
     void analyseAboavWeaire(); //calculate aboav-weaire parameters
     void analysePartialSpatialRdfs(); //calculate partial rdfs for each ring size
     void analysePartialTopologicalRdfs(); //calculate partial topological rdfs for each ring size
@@ -150,6 +152,7 @@ private:
     void writeAboavWeaire(); //write out aboav weaire parameters
     void writeSpatialPartialRdfs(); //write out partial rdfs
     void writeTopoPartialRdfs(); //write out partial rdfs
+    void writeRingAreas(); //write out mean areas ring sizes
     void writeAssortativeMixing(); //write out assortative pearson correlation
     void writeAtomicGeometryOptimisation(); //write energy of atomic system
 
@@ -159,7 +162,7 @@ public:
     void setPotential(double sep, double k, bool local, int localMaxIt, double localCC,
                       bool global, int globalMaxIt, double globalCC, double lineInc); //set parameters for potential model
     void setMonteCarlo(int seed, double t, int moves, double conv, double asf); //set monte carlo limits
-    void setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt, bool aMix); //set analysis tools
+    void setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt, bool rArea, bool aMix); //set analysis tools
     void setAtomicPotential(bool opt, double kA, double kAlpha, double kBeta, int maxIt, double cc, double lineInc); //set parameters for atomic geometry optimisation
     bool getConsistency(); //get whether network constructed is consistent
     bool getTargetStatus(); //get whether target is met

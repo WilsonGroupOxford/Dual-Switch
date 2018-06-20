@@ -86,6 +86,7 @@ void Simulation::readInputFile() {
     readFileValue(mainInputFile,spatialRdfExtent);
     readFileValue(mainInputFile,topoRdf);
     readFileValue(mainInputFile,topoRdfExtent);
+    readFileValue(mainInputFile,ringAreas);
     readFileValue(mainInputFile,assortative);
     readFileSkipLines(mainInputFile,2);
     readFileValue(mainInputFile,atomicGeomOpt);
@@ -134,7 +135,7 @@ void Simulation::initialiseNetwork(Network &network, int seed) {
     network.setPotential(atomDistance, harmonicK, localGeomOpt, localGeomOptMaxIt, localGeomOptConv,
                          globalGeomOpt, globalGeomOptMaxIt, globalGeomOptConv, lineSearchStep);
     network.setMonteCarlo(seed,temperature,maxMoves,propConvergence,alphaEnergyScaling);
-    network.setAnalysis(convertDual,periodicVis,spatialRdf,spatialRdfBinWidth,spatialRdfExtent,topoRdf,topoRdfExtent,assortative);
+    network.setAnalysis(convertDual,periodicVis,spatialRdf,spatialRdfBinWidth,spatialRdfExtent,topoRdf,topoRdfExtent,ringAreas,assortative);
     network.setAtomicPotential(atomicGeomOpt,keatingA,keatingAlpha,keatingBeta,atomGeomOptMaxIt,atomGeomOptConv,atomLineSearchStep);
     return;
 }

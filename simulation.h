@@ -31,7 +31,7 @@ private:
     double atomDistance, harmonicK, localGeomOptConv, globalGeomOptConv, lineSearchStep; //between atoms in network, force constant, local/global force convergence criteria
 
     //Analysis
-    bool convertDual, periodicVis, spatialRdf, topoRdf, assortative; //convert to atomic network, periodic visualisation, spatial partial rdfs, topological rdfs
+    bool convertDual, periodicVis, spatialRdf, topoRdf, assortative, ringAreas; //convert to atomic network, periodic visualisation, spatial partial rdfs, topological rdfs, ring areas
     double spatialRdfBinWidth, spatialRdfExtent, topoRdfExtent; //histogram bin width and distance
 
     //Atomic Potential Model and Geometry Optimisation
