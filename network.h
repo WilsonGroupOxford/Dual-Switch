@@ -127,7 +127,7 @@ private:
     vector< vector<int> > topoRdfShellSizes; //number of rings in each shell for each ring size
     vector<Rdf> topoPartialRdfs; //rdfs for each ring size pair
     vector<double> assortativeMixing; //pearson cc via two methods
-    vector<double> ringAreas; //average areas of rings of different sizes
+    vector<double> ringAreas; //areas of rings of different sizes
     int atomicGeomOptStatus, atomicGeomOptIterations; //whether optimised, number of iterations
     double atomicGeomOptEnergy; //final energy of geometry optimisation
 

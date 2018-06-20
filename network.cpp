@@ -1889,7 +1889,7 @@ void Network::analyseRingAreas() {
     //calculate area of each ring in the network using shoelace method
 
     //loop over each ring and calculate dimensionless area
-    ringAreas.resize(nRingSizes,0.0);
+    ringAreas.resize(nRings,0.0);
     int polySize;
     double area;
     double scaleFactor=0.5/(keatingA*keatingA);
@@ -1911,12 +1911,7 @@ void Network::analyseRingAreas() {
 //            cout<<p0.x<<" "<<p0.y<<", ";
         }
         area*=scaleFactor;
-        ringAreas[polySize-minRingSize]+=fabs(area);
-    }
-
-    //average areas
-    for(int i=0; i<nRingSizes; ++i){
-        ringAreas[i]/=(ringStatistics[i]*nRings);
+        ringAreas[i]=fabs(area);
     }
 }
 
@@ -2503,11 +2498,10 @@ void Network::writeRingAreas(){
     //write number of each ring size and average area of each
     string areaOutputFileName=outPrefix+"analysis_ring_area.out";
     ofstream areaOutputFile(areaOutputFileName, ios::in|ios::trunc);
-    vector<int> absRingNumbers(nRingSizes);
-    for(int i=0; i<nRingSizes; ++i) absRingNumbers[i]=ringStatistics[i]*nRings;
-    writeFileRowVector(areaOutputFile,absRingNumbers);
     areaOutputFile<<fixed<<showpoint<<setprecision(6);
-    writeFileRowVector(areaOutputFile, ringAreas);
+    for(int i=0; i<nRings; ++i){
+        areaOutputFile<<vertexRings[i].size<<"    "<<ringAreas[i]<<endl;
+    }
     areaOutputFile.close();
     return;
 }
