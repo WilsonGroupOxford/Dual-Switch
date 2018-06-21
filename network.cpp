@@ -1919,17 +1919,20 @@ void Network::analyseRingAreas() {
 
 void Network::analyseAtomicGeometry() {
     //calculate mean and standard deviation of bond lengths and angles in different ring sizes
+    //ONLY ACCURATE FOR PERIODIC AS DOUBLE COUNTS NON-EDGE BOND LENGTHS
 
     atomicGeomBondMean.resize(nRingSizes+1);
     atomicGeomBondStd.resize(nRingSizes+1);
     atomicGeomAngleMean.resize(nRingSizes+1);
     atomicGeomAngleStd.resize(nRingSizes+1);
     int ringSize;
-    vector<double> ringBonds, ringAngles, totalBonds, totalAngles;
+    vector<double> ringBonds, ringAngles;
     vector<Crd2d> ringCrds;
     Crd2d ringCentre;
     Vec2d v0, v1;
     double d, mean, stdev;
+    atomicBondDistribution.clear();
+    atomicAngleDistribution.clear();
     //loop over all ring sizes
     for(int i=0, j=minRingSize; i<nRingSizes; ++i, ++j){
         //reset variables
@@ -1950,7 +1953,7 @@ void Network::analyseAtomicGeometry() {
                     v0=Vec2d(ringCrds[l],ringCrds[l+1],periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
                     d=v0.length();
                     ringBonds.push_back(d);
-                    totalBonds.push_back(d);
+                    atomicBondDistribution.push_back(d);
                 }
                 //calculate bond angles
                 for(int l=1; l<=ringSize; ++l){
@@ -1961,7 +1964,7 @@ void Network::analyseAtomicGeometry() {
                     d=vectorDotProduct(v0,v1);
                     d=acos(d)*180.0/M_PI;
                     ringAngles.push_back(d);
-                    totalAngles.push_back(d);
+                    atomicAngleDistribution.push_back(d);
                 }
             }
         }
@@ -1972,10 +1975,10 @@ void Network::analyseAtomicGeometry() {
         atomicGeomAngleMean[i]=mean;
         atomicGeomAngleStd[i]=stdev;
     }
-    meanAndStdDeviation(totalBonds,mean,stdev);
+    meanAndStdDeviation(atomicBondDistribution,mean,stdev);
     atomicGeomBondMean[nRingSizes]=mean;
     atomicGeomBondStd[nRingSizes]=stdev;
-    meanAndStdDeviation(totalAngles,mean,stdev);
+    meanAndStdDeviation(atomicAngleDistribution,mean,stdev);
     atomicGeomAngleMean[nRingSizes]=mean;
     atomicGeomAngleStd[nRingSizes]=stdev;
 }
@@ -2577,7 +2580,7 @@ void Network::writeAtomicGeometryOptimisation() {
 }
 
 void Network::writeAtomicGeometrySummary() {
-    //write out success and final energy/iterations of atomic geometry optimisation
+    //write out average bond length and angle and entire distribution
     string geomOutputFileName=outPrefix+"analysis_atomic_geometry_sum.out";
     ofstream geomOutputFile(geomOutputFileName, ios::in|ios::trunc);
     geomOutputFile<<fixed<<showpoint<<setprecision(6);
@@ -2586,6 +2589,18 @@ void Network::writeAtomicGeometrySummary() {
     writeFileRowVector(geomOutputFile, atomicGeomAngleMean);
     writeFileRowVector(geomOutputFile, atomicGeomAngleStd);
     geomOutputFile.close();
+    geomOutputFileName=outPrefix+"analysis_atomic_geometry_full.out";
+    ofstream geomFullOutputFile(geomOutputFileName, ios::in|ios::trunc);
+    geomFullOutputFile<<fixed<<showpoint<<setprecision(6);
+    int index=0;
+    for(int i=0, ringSize=minRingSize; i<nRingSizes; ++i, ++ringSize){
+        int n=ringStatistics[i]*nRings*ringSize;
+        for(int j=0; j<n; ++j){
+            geomFullOutputFile<<ringSize<<"  "<<atomicBondDistribution[index]<<"  "<<atomicAngleDistribution[index]<<endl;
+            ++index;
+        }
+    }
+    geomFullOutputFile.close();
     return;
 }
 

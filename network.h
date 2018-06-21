@@ -132,6 +132,7 @@ private:
     double atomicGeomOptEnergy; //final energy of geometry optimisation
     vector<double> atomicGeomBondMean, atomicGeomAngleMean; //mean of atomic bond and angles for each ringsize
     vector<double> atomicGeomBondStd, atomicGeomAngleStd; //standard deviation of atomic bond and angles for each ringsize
+    vector<double> atomicBondDistribution, atomicAngleDistribution; //full bond and angle distribution, listed in order of ring size
 
     //###### Analysis functions ######
     void convertDualToAtomicNetwork(); //triangulate nodes to get atomic network
