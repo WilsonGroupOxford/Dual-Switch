@@ -1,6 +1,6 @@
 IO
-./silica_area_test/alpha_25_seed_1    input prefix
-./silica_area_test/test_area output prefix
+./silica_area_test/alpha_25_seed_1     alpha_25_seed_1    input prefix
+./silica_area_test/test_area    output prefix
 --------------------------------------
 Network Properties
 1          periodic
@@ -8,7 +8,7 @@ Network Properties
 100 100     starting bulk hexagonal lattice dimensions
 4 10     ring size limits
 0.2      target alpha
-0.04 0.268 0.42 0.21 0.05 0.01 0.002      0.1 0.35 0.15 0.25 0.15     0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics 0.1 0.35 0.15 0.25 0.15
+0.04 0.268 0.42 0.21 0.05 0.01 0.002      0.1 0.35 0.15 0.25 0.15    0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics 0.1 0.35 0.15 0.25 0.15
 --------------------------------------
 Simulation Parameters
 0 0         random seed range (inclusive)

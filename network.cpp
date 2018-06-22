@@ -1631,13 +1631,16 @@ void Network::analyse(ofstream &logfile) {
     analyseRingStatistics();
     analyseAboavWeaire();
     //optional analysis
-    if(convertToAtomic) convertDualToAtomicNetwork();
-    if(convertToAtomic && atomicGeomOpt && periodic) geometryOptimiseAtomicNetworkPeriodic();
-    if(convertToAtomic && atomicGeomOpt && !periodic) geometryOptimiseAtomicNetworkAperiodic();
+    if(convertToAtomic){
+        convertDualToAtomicNetwork();
+        if(atomicGeomOpt && periodic) geometryOptimiseAtomicNetworkPeriodic();
+        if(atomicGeomOpt && !periodic) geometryOptimiseAtomicNetworkAperiodic();
+        analyseAtomicGeometry();
+        if(areaLaw) analyseRingAreas();
+    }
     if(periodic && spatialRdf) analysePartialSpatialRdfs();
     if(periodic && topoRdf) analysePartialTopologicalRdfs();
     if(assortativeMix) analyseAssortativity();
-    if(areaLaw) analyseRingAreas();
 
     writeFileLine(logfile,name+" analysed");
     return;
@@ -1889,29 +1892,109 @@ void Network::analyseRingAreas() {
     //calculate area of each ring in the network using shoelace method
 
     //loop over each ring and calculate dimensionless area
-    ringAreas.resize(nRings,0.0);
-    int polySize;
+    ringAreas.resize(nRings);
+    int ringSize;
     double area;
-    double scaleFactor=0.5/(keatingA*keatingA);
-    Crd2d polyOrigin, p0, p1;
+    Crd2d ringOrigin, p0, p1;
     for(int i=0; i<vertexRings.size(); ++i){
         //recentre coordinates on first point with pbcs
-        polySize=vertexRings[i].size;
-        polyOrigin=nodes[vertexRings[i].id].coordinate;
-        vector<Crd2d> polygonCrds(polySize+1);
-        for(int j=0; j<polySize+1;++j){
-            polygonCrds[j]=recentreCrdByCrd(polyOrigin,vertices[vertexRings[i].chain[j]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+        ringSize=vertexRings[i].size;
+        ringOrigin=nodes[vertexRings[i].id].coordinate;
+        vector<Crd2d> ringCrds(ringSize+1);
+        for(int j=0; j<ringSize+1;++j){
+            ringCrds[j]=recentreCrdByCrd(ringOrigin,vertices[vertexRings[i].chain[j]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
         }
         //calculate area
         area=0.0;
-        for(int j=0; j<vertexRings[i].size; ++j){
-            p0=polygonCrds[j];
-            p1=polygonCrds[j+1];
+        for(int j=0; j<ringSize; ++j){
+            p0=ringCrds[j];
+            p1=ringCrds[j+1];
             area+=p0.y*p1.x-p0.x*p1.y;
 //            cout<<p0.x<<" "<<p0.y<<", ";
         }
-        area*=scaleFactor;
+        area*=0.5;
         ringAreas[i]=fabs(area);
+    }
+}
+
+void Network::analyseAtomicGeometry() {
+    //calculate mean and standard deviation of bond lengths and angles in different ring sizes
+    //ONLY ACCURATE FOR PERIODIC AS DOUBLE COUNTS NON-EDGE BOND LENGTHS
+
+    atomicGeomBondMean.resize(nRingSizes+1);
+    atomicGeomBondStd.resize(nRingSizes+1);
+    atomicGeomAngleMean.resize(nRingSizes+1);
+    atomicGeomAngleStd.resize(nRingSizes+1);
+    int ringSize;
+    vector<double> ringBonds, ringAngles;
+    vector<Crd2d> ringCrds;
+    Crd2d ringCentre;
+    Vec2d v0, v1;
+    double d, mean, stdev;
+    atomicBondDistribution.clear();
+    atomicAngleDistribution.clear();
+    //loop over all ring sizes
+    for(int i=0, j=minRingSize; i<nRingSizes; ++i, ++j){
+        //reset variables
+        ringBonds.clear();
+        ringAngles.clear();
+        //loop over all rings and find those which have search ring size
+        for(int k=0; k<vertexRings.size(); ++k){
+            ringSize=vertexRings[k].size;
+            if(ringSize==j){//ring size matches
+                ringCrds.resize(ringSize+2); //end repeated at start and vice versa
+                ringCentre=nodes[vertexRings[k].id].coordinate;
+                ringCrds[0]=recentreCrdByCrd(ringCentre,vertices[vertexRings[k].chain[ringSize-1]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+                for(int l=0; l<ringSize+1; ++l){
+                    ringCrds[l+1]=recentreCrdByCrd(ringCentre,vertices[vertexRings[k].chain[l]].coordinate,periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+                }
+                //calculate bond lengths
+                for(int l=1; l<=ringSize; ++l){
+                    v0=Vec2d(ringCrds[l],ringCrds[l+1],periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+                    d=v0.length();
+                    ringBonds.push_back(d);
+                    atomicBondDistribution.push_back(d);
+                }
+                //calculate bond angles
+                for(int l=1; l<=ringSize; ++l){
+                    v0=Vec2d(ringCrds[l],ringCrds[l+1],periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+                    v1=Vec2d(ringCrds[l],ringCrds[l-1],periodicBoxX,periodicBoxY,rPeriodicBoxX,rPeriodicBoxY);
+                    v0.normalise();
+                    v1.normalise();
+                    d=vectorDotProduct(v0,v1);
+                    d=acos(d)*180.0/M_PI;
+                    ringAngles.push_back(d);
+                    atomicAngleDistribution.push_back(d);
+                }
+            }
+        }
+        meanAndStdDeviation(ringBonds,mean,stdev);
+        atomicGeomBondMean[i]=mean;
+        atomicGeomBondStd[i]=stdev;
+        meanAndStdDeviation(ringAngles,mean,stdev);
+        atomicGeomAngleMean[i]=mean;
+        atomicGeomAngleStd[i]=stdev;
+    }
+    meanAndStdDeviation(atomicBondDistribution,mean,stdev);
+    atomicGeomBondMean[nRingSizes]=mean;
+    atomicGeomBondStd[nRingSizes]=stdev;
+    meanAndStdDeviation(atomicAngleDistribution,mean,stdev);
+    atomicGeomAngleMean[nRingSizes]=mean;
+    atomicGeomAngleStd[nRingSizes]=stdev;
+}
+
+void Network::meanAndStdDeviation(vector<double> &values, double &mean, double &stdev) {
+    //calculate mean and standard deviation of provied values
+    mean=0.0;
+    stdev=0.0;
+    int n=values.size();
+    if(n>0) {
+        for (int i = 0; i < n; ++i) {
+            mean += values[i];
+            stdev += values[i] * values[i];
+        }
+        mean /= n;
+        stdev = sqrt(stdev / n - mean * mean);
     }
 }
 
@@ -2111,8 +2194,6 @@ void Network::write() {
     //write out to files
 
     writeDual();
-    if(convertToAtomic) writeAtomicNetwork();
-
     if(periodicVisualisation) writePeriodicDualNetwork();
     if(globalGeomOpt) writeGeometryOptimisationEnergy();
     writeRingStatistics();
@@ -2120,8 +2201,12 @@ void Network::write() {
     if(periodic && spatialRdf) writeSpatialPartialRdfs();
     if(periodic && topoRdf) writeTopoPartialRdfs();
     if(assortativeMix) writeAssortativeMixing();
-    if(convertToAtomic && atomicGeomOpt) writeAtomicGeometryOptimisation();
-    if(areaLaw) writeRingAreas();
+    if(convertToAtomic){
+        writeAtomicNetwork();
+        if(atomicGeomOpt) writeAtomicGeometryOptimisation();
+        writeAtomicGeometrySummary();
+        if(areaLaw) writeRingAreas();
+    }
 
     return;
 }
@@ -2494,13 +2579,47 @@ void Network::writeAtomicGeometryOptimisation() {
     return;
 }
 
+void Network::writeAtomicGeometrySummary() {
+    //write out average bond length and angle and entire distribution
+    string geomOutputFileName=outPrefix+"analysis_atomic_geometry_sum.out";
+    ofstream geomOutputFile(geomOutputFileName, ios::in|ios::trunc);
+    geomOutputFile<<fixed<<showpoint<<setprecision(6);
+    writeFileRowVector(geomOutputFile, atomicGeomBondMean);
+    writeFileRowVector(geomOutputFile, atomicGeomBondStd);
+    writeFileRowVector(geomOutputFile, atomicGeomAngleMean);
+    writeFileRowVector(geomOutputFile, atomicGeomAngleStd);
+    geomOutputFile.close();
+    geomOutputFileName=outPrefix+"analysis_atomic_geometry_full.out";
+    ofstream geomFullOutputFile(geomOutputFileName, ios::in|ios::trunc);
+    geomFullOutputFile<<fixed<<showpoint<<setprecision(6);
+    int index=0;
+    for(int i=0, ringSize=minRingSize; i<nRingSizes; ++i, ++ringSize){
+        int n=ringStatistics[i]*nRings*ringSize;
+        for(int j=0; j<n; ++j){
+            geomFullOutputFile<<ringSize<<"  "<<atomicBondDistribution[index]<<"  "<<atomicAngleDistribution[index]<<endl;
+            ++index;
+        }
+    }
+    geomFullOutputFile.close();
+    return;
+}
+
 void Network::writeRingAreas(){
-    //write number of each ring size and average area of each
+    //write absolute area of rings
+    //write dimensionless area averaged over: ideal bond, all bonds, bonds of rings of same size (if have information)
     string areaOutputFileName=outPrefix+"analysis_ring_area.out";
     ofstream areaOutputFile(areaOutputFileName, ios::in|ios::trunc);
     areaOutputFile<<fixed<<showpoint<<setprecision(6);
+    int n,m;
+    double d0, d1, d2, d3;
     for(int i=0; i<nRings; ++i){
-        areaOutputFile<<vertexRings[i].size<<"    "<<ringAreas[i]<<endl;
+        n=vertexRings[i].size;
+        m=n-minRingSize;
+        d0=ringAreas[i];
+        d1=d0/(keatingA*keatingA);
+        d2=d0/(atomicGeomBondMean[nRingSizes]*atomicGeomBondMean[nRingSizes]);
+        d3=d0/(atomicGeomBondMean[m]*atomicGeomBondMean[m]);
+        areaOutputFile<<n<<"  "<<d0<<"  "<<d1<<"  "<<d2<<"  "<<d3<<endl;
     }
     areaOutputFile.close();
     return;

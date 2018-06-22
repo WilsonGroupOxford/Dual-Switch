@@ -130,6 +130,9 @@ private:
     vector<double> ringAreas; //areas of rings of different sizes
     int atomicGeomOptStatus, atomicGeomOptIterations; //whether optimised, number of iterations
     double atomicGeomOptEnergy; //final energy of geometry optimisation
+    vector<double> atomicGeomBondMean, atomicGeomAngleMean; //mean of atomic bond and angles for each ringsize
+    vector<double> atomicGeomBondStd, atomicGeomAngleStd; //standard deviation of atomic bond and angles for each ringsize
+    vector<double> atomicBondDistribution, atomicAngleDistribution; //full bond and angle distribution, listed in order of ring size
 
     //###### Analysis functions ######
     void convertDualToAtomicNetwork(); //triangulate nodes to get atomic network
@@ -139,8 +142,10 @@ private:
     void analysePartialSpatialRdfs(); //calculate partial rdfs for each ring size
     void analysePartialTopologicalRdfs(); //calculate partial topological rdfs for each ring size
     void analyseAssortativity(); //calculate assortativity
+    void analyseAtomicGeometry(); //calculate average/std of bond lengths and angles
     void geometryOptimiseAtomicNetworkPeriodic(); //globally minimise periodic atomic network
     void geometryOptimiseAtomicNetworkAperiodic(); //globally minimise aperiodic atomic network
+    void meanAndStdDeviation(vector<double> &values, double &mean, double &stdev); //calculates mean and std of values
 
     //###### Write functions ######
     void writeDual(); //write out dual network
@@ -155,6 +160,7 @@ private:
     void writeRingAreas(); //write out mean areas ring sizes
     void writeAssortativeMixing(); //write out assortative pearson correlation
     void writeAtomicGeometryOptimisation(); //write energy of atomic system
+    void writeAtomicGeometrySummary(); //write bond and angle averages and stdev
 
 public:
     void setIO(string in, string out); //set input/output properties
