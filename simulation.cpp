@@ -58,6 +58,8 @@ void Simulation::readInputFile() {
     readFileSkipLines(mainInputFile,2);
     readFileValue(mainInputFile,periodic);
     readFileValue(mainInputFile,load);
+    readFileValue(mainInputFile,setPbc);
+    readFileRowVector(mainInputFile,customPbc,2);
     readFileRowVector(mainInputFile,latticeDimensions,2);
     readFileRowVector(mainInputFile,ringSizeLimits,2);
     readFileValue(mainInputFile,alpha);
@@ -131,7 +133,7 @@ void Simulation::initialiseNetwork(Network &network, int seed) {
     //set up network with input properties and given random seed
 
     network.setIO(inPrefix,outPrefix+"_"+to_string(seed));
-    network.setProperties(periodic,load,latticeDimensions,ringSizeLimits,alpha,pVector);
+    network.setProperties(periodic,load,latticeDimensions,setPbc,customPbc,ringSizeLimits,alpha,pVector);
     network.setPotential(atomDistance, harmonicK, localGeomOpt, localGeomOptMaxIt, localGeomOptConv,
                          globalGeomOpt, globalGeomOptMaxIt, globalGeomOptConv, lineSearchStep);
     network.setMonteCarlo(seed,temperature,maxMoves,propConvergence,alphaEnergyScaling);

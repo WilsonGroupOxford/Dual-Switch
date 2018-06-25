@@ -9,11 +9,13 @@ void Network::setIO(string in, string out) {
     return;
 }
 
-void Network::setProperties(bool per, bool readIn, vector<int> latDim, vector<int> ringLim, double alpha, vector<double> p) {
+void Network::setProperties(bool per, bool readIn, vector<int> latDim, bool ovrPbc, vector<double> ovrLatPbc, vector<int> ringLim, double alpha, vector<double> p) {
     //set initial lattice properties and target lattice properties
     periodic=per;
     load=readIn;
     initialLatticeDimensions=latDim;
+    overridePbc=ovrPbc;
+    overridelatticePbc=ovrLatPbc;
     ringSizeLimits=ringLim;
     targetAlpha=alpha;
     targetPVector=p;
@@ -484,11 +486,28 @@ void Network::loadPeriodicLattice() {
     }
 
     //set up periodic dimensions
-    int xNodes=initialLatticeDimensions[0], yNodes=initialLatticeDimensions[1]; //number of nodes in layer and number of layers
-    double r66=harmonicR0Matrix[6-minRingSize][6-minRingSize]; //ideal 6-6 distance
-    double xStagger=0.5*r66, yOffset=0.5*sqrt(3)*r66; //shift in x (intralayer), shift in y (interlayer)
-    periodicBoxX=r66*xNodes;
-    periodicBoxY=yOffset*yNodes;
+    string pbcFilename=inPrefix+"periodic_lattice_dim.out";
+    ifstream pbcFile(pbcFilename,ios::in);
+    double originalPbcX, originalPbcY;
+    readFileValue(pbcFile,originalPbcX);
+    readFileValue(pbcFile,originalPbcY);
+    pbcFile.close();
+    if(!overridePbc){
+        periodicBoxX=originalPbcX;
+        periodicBoxY=originalPbcY;
+    }
+    else{
+        //scale dual coordinates to fit in new box
+        double sfX=overridelatticePbc[0]/originalPbcX;
+        double sfY=overridelatticePbc[1]/originalPbcY;
+        Crd2d originalBoxCentre(periodicBoxX*0.5,periodicBoxY*0.5);
+        for(int i=0; i<nNodes; ++i){
+            nodes[i].coordinate.x=sfX*(nodes[i].coordinate.x-originalBoxCentre.x)+originalBoxCentre.x;
+            nodes[i].coordinate.y=sfY*(nodes[i].coordinate.y-originalBoxCentre.y)+originalBoxCentre.y;
+        }
+        periodicBoxX=overridelatticePbc[0];
+        periodicBoxY=overridelatticePbc[1];
+    }
     rPeriodicBoxX=1.0/periodicBoxX;
     rPeriodicBoxY=1.0/periodicBoxY;
 

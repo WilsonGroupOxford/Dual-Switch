@@ -15,10 +15,11 @@ private:
     string inPrefix, outPrefix; //for IO filenames
 
     //Network Properties
-    bool periodic, load; //(a)periodic network, using existing network
+    bool periodic, load, setPbc; //(a)periodic network, using existing network, with custom periodic boundary conditions
     double alpha; //target aboav-weaire alpha parameter
     vector<int> latticeDimensions, ringSizeLimits; //initial lattice dimensions (nunmber of rings in x/y), min/max ring sizes
     vector<double> pVector; //target ring statistics
+    vector<double> customPbc; //custom periodic boundary conditions
 
     //Simulation Parameters
     vector<int> randomSeedLimits; //random seeds

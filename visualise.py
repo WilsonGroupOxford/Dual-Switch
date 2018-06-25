@@ -240,6 +240,9 @@ def generateColours(ringSizes,kRings=None,kFlag=False):
 
     colourList=[green,blue,grey,red,orange,purple,pink]
 
+   # colourList=[mcd.CSS4_COLORS['blue'],mcd.CSS4_COLORS['black'],mcd.CSS4_COLORS['yellow'],mcd.CSS4_COLORS['lime'],mcd.CSS4_COLORS['red'],\
+    #                    mcd.CSS4_COLORS['purple'],mcd.CSS4_COLORS['cyan']]
+
     if(kFlag):
         for i in range(nRings):
             if(int(ringSizes[i])<4 or kRings[i]==1): colours.append('black')
@@ -270,7 +273,7 @@ def generatePolygonDrawingCommands(min, max):
 
 def savePlot(prefix):
     filename=prefix+".png"
-    plt.savefig(filename, dpi=800, bbox_inches="tight")
+    plt.savefig(filename, dpi=400, bbox_inches="tight")
     return
 
 def displayPlot():

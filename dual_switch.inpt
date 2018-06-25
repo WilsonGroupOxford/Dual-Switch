@@ -1,13 +1,15 @@
 IO
-./silica_area_test/alpha_25_seed_1     alpha_25_seed_1    input prefix
-./silica_area_test/test_area    output prefix
+./silica_area_test/alpha_30_seed_4     alpha_25_seed_1    input prefix
+./silica_area_test/dim_200_200    output prefix
 --------------------------------------
 Network Properties
 1          periodic
 1           use existing network (P)
+1           override default periodic lattice dimensions (P+L)
+200.0 200.0  custom periodic lattice dimensions (P+L)
 100 100     starting bulk hexagonal lattice dimensions
 4 10     ring size limits
-0.2      target alpha
+0.35      target alpha
 0.04 0.268 0.42 0.21 0.05 0.01 0.002      0.1 0.35 0.15 0.25 0.15    0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics 0.1 0.35 0.15 0.25 0.15
 --------------------------------------
 Simulation Parameters
@@ -24,13 +26,13 @@ Dual Potential Model and Geometry Optimisation
 100         maximum iterations
 0.1         convergence criteria
 0.001        line search step size
-0           globally minimise after simulation end
+1           globally minimise after simulation end
 1000       maximum iterations
 0.001         convergence criteria
 --------------------------------------
 Analysis Tools
 1           convert to atomic network
-0           periodic visualisation
+1           periodic visualisation
 0           partial spatial rdfs (P)
 0.01        partial rdf bin width
 50.0        partial rdf extent
@@ -40,7 +42,7 @@ Analysis Tools
 0           assortative mixing (P)
 --------------------------------------
 Atomic Potential Model and Geometry Optimisation
-0           globally minimise atomic network
+1           globally minimise atomic network
 1.42        Keating a parameter
 25.880      Keating alpha parameter
 5.176       Keating beta parameter
@@ -51,3 +53,4 @@ Atomic Potential Model and Geometry Optimisation
 
 Key
 (P) = periodic only
+(L) = load only

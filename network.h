@@ -21,10 +21,11 @@ private:
     string inPrefix, outPrefix; //for input and output files
 
     //Network properties
-    bool periodic, load; //periodic network, load existing network
+    bool periodic, load, overridePbc; //periodic network, load existing network, override default pbc
     double targetAlpha; //target for aboav-weaire alpha parameter
     vector<int> initialLatticeDimensions, ringSizeLimits; //starting hex lattice size, max/min ring size values
     vector<double> targetPVector; //target ring statistics
+    vector<double> overridelatticePbc; //overriden periodc boundary conditions
 
     //Potential model
     bool localGeomOpt, globalGeomOpt; //geometry optimisation local after each accepted step of global at end
@@ -164,7 +165,7 @@ private:
 
 public:
     void setIO(string in, string out); //set input/output properties
-    void setProperties(bool per, bool readIn, vector<int> latDim, vector<int> ringLim, double alpha, vector<double> p); //set initial and target network properties
+    void setProperties(bool per, bool readIn, vector<int> latDim, bool ovrPbc, vector<double> ovrLatPbc, vector<int> ringLim, double alpha, vector<double> p); //set initial and target network properties
     void setPotential(double sep, double k, bool local, int localMaxIt, double localCC,
                       bool global, int globalMaxIt, double globalCC, double lineInc); //set parameters for potential model
     void setMonteCarlo(int seed, double t, int moves, double conv, double asf); //set monte carlo limits
