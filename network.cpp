@@ -47,7 +47,7 @@ void Network::setMonteCarlo(int seed, double t, int moves, double conv, double a
     return;
 }
 
-void Network::setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt, bool rArea, bool aMix){
+void Network::setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt, bool rArea, bool clst, bool aMix){
     //specify analysis to perform
     convertToAtomic=convert;
     if(periodic) periodicVisualisation=perVis;
@@ -58,6 +58,7 @@ void Network::setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, dou
     topoRdf=tRdf;
     topoRdfExtent=tRdfExt;
     areaLaw=rArea;
+    clustering=clst;
     assortativeMix=aMix;
     return;
 }
@@ -1659,6 +1660,7 @@ void Network::analyse(ofstream &logfile) {
     }
     if(periodic && spatialRdf) analysePartialSpatialRdfs();
     if(periodic && topoRdf) analysePartialTopologicalRdfs();
+    if(periodic && clustering) analyseClusters();
     if(assortativeMix) analyseAssortativity();
 
     writeFileLine(logfile,name+" analysed");
@@ -1829,6 +1831,51 @@ void Network::analysePartialTopologicalRdfs() {
 
     return;
 }
+
+void Network::analyseClusters() {
+    //find clusters of each ring size and calculate sizes
+
+    //find clusters of the same ring size and analyse
+    clusterSizes.resize(nRingSizes);
+    int n0,n1;
+    vector<bool> checkNode(nNodes,true); //marks if node already part of a cluster
+    for(int i=0, j=minRingSize; i<nRingSizes; ++i, ++j){//loop over ring sizes
+        vector< vector<int> > clusters;
+        vector<int> cluster;
+        //find clusters
+        for(int k=0; k<nNodes; ++k){//loop over nodes
+            if(checkNode[k] && nodes[k].size==j){//select starting node of correct size
+                cluster.clear();
+                cluster.push_back(k);
+                checkNode[k]=false;
+                bool searchComplete=false;
+                vector<int> prevSearch,search;
+                prevSearch.clear();
+                prevSearch.push_back(k);
+                do {//find members of same cluster
+                    search.clear();
+                    for(int l=0; l<prevSearch.size(); ++l){
+                        n0=prevSearch[l];
+                        for(int m=0; m<nodes[n0].size; ++m){
+                            n1=nodes[n0].connections[m];
+                            if(checkNode[n1] && nodes[n1].size==j){
+                                search.push_back(n1);
+                                checkNode[n1]=false;
+                            }
+                        }
+                    }
+                    for(int m=0; m<search.size(); ++m) cluster.push_back(search[m]);
+                    prevSearch=search;
+                    if(search.size()==0) searchComplete=true;
+                }while(!searchComplete);
+                clusters.push_back(cluster);
+            }
+        }
+        //analyse clusters
+        for(int k=0; k<clusters.size(); ++k) clusterSizes[i].push_back(clusters[k].size());
+    }
+}
+
 
 void Network::analyseAssortativity() {
     //calculate assortative mixing Pearson correlation coefficient by two methods, and theoretically from alpha
@@ -2219,6 +2266,7 @@ void Network::write() {
     writeAboavWeaire();
     if(periodic && spatialRdf) writeSpatialPartialRdfs();
     if(periodic && topoRdf) writeTopoPartialRdfs();
+    if(periodic && clustering) writeClusters();
     if(assortativeMix) writeAssortativeMixing();
     if(convertToAtomic){
         writeAtomicNetwork();
@@ -2571,6 +2619,29 @@ void Network::writeTopoPartialRdfs() {
         writeFileColVector(rdfOutputFile,topoPartialRdfs[i].vectorHistogram());
     }
     rdfOutputFile.close();
+    return;
+}
+
+void Network::writeClusters() {
+    //write out size of clusters to single file
+
+    string clusterOutputFileName=outPrefix+"analysis_clusters.out";
+    ofstream clusterOutputFile(clusterOutputFileName, ios::in|ios::trunc);
+    
+    //check clusters include all nodes
+    int sum=0;
+    for(int i=0; i<nRingSizes; ++i){
+        for(int j=0; j<clusterSizes[i].size(); ++j) sum+=clusterSizes[i][j];
+    }
+    if(sum!=nNodes) writeFileLine(clusterOutputFile,"ERROR");
+
+    //write clusters
+    for(int i=0, j=minRingSize; i<nRingSizes; ++i,++j){
+        writeFileLine(clusterOutputFile,"Cluster sizes for rings of size: "+to_string(j));
+        writeFileLine(clusterOutputFile,"Number of clusters: "+to_string(clusterSizes[i].size()));
+        writeFileColVector(clusterOutputFile,clusterSizes[i]);
+    }
+    clusterOutputFile.close();
     return;
 }
 

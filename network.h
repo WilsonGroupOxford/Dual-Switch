@@ -39,7 +39,7 @@ private:
     double mcTemperature, mcConvergence, mcAlphaScaleFactor; //temperature, properties convergence criteria, scale factor for energy functional
 
     //Analysis variables
-    bool convertToAtomic, periodicVisualisation, spatialRdf, topoRdf, assortativeMix, areaLaw; //convert dual to atomic network, make periodic image, spatial partial rdfs, topological rdfs, assortative mixing, ring areas
+    bool convertToAtomic, periodicVisualisation, spatialRdf, topoRdf, assortativeMix, areaLaw, clustering; //convert dual to atomic network, make periodic image, spatial partial rdfs, topological rdfs, assortative mixing, ring areas, clustering
     double spatialRdfBinwidth, spatialRdfExtent, topoRdfExtent; //size of bin rdf, max distance for rdf
 
     //Atomic Geometry Optimisation
@@ -134,6 +134,7 @@ private:
     vector<double> atomicGeomBondMean, atomicGeomAngleMean; //mean of atomic bond and angles for each ringsize
     vector<double> atomicGeomBondStd, atomicGeomAngleStd; //standard deviation of atomic bond and angles for each ringsize
     vector<double> atomicBondDistribution, atomicAngleDistribution; //full bond and angle distribution, listed in order of ring size
+    vector< vector<int> > clusterSizes; //sizes of clusters
 
     //###### Analysis functions ######
     void convertDualToAtomicNetwork(); //triangulate nodes to get atomic network
@@ -143,6 +144,7 @@ private:
     void analysePartialSpatialRdfs(); //calculate partial rdfs for each ring size
     void analysePartialTopologicalRdfs(); //calculate partial topological rdfs for each ring size
     void analyseAssortativity(); //calculate assortativity
+    void analyseClusters(); //analyse size of clusters
     void analyseAtomicGeometry(); //calculate average/std of bond lengths and angles
     void geometryOptimiseAtomicNetworkPeriodic(); //globally minimise periodic atomic network
     void geometryOptimiseAtomicNetworkAperiodic(); //globally minimise aperiodic atomic network
@@ -159,6 +161,7 @@ private:
     void writeSpatialPartialRdfs(); //write out partial rdfs
     void writeTopoPartialRdfs(); //write out partial rdfs
     void writeRingAreas(); //write out mean areas ring sizes
+    void writeClusters(); //write out size of clusters of each ring size
     void writeAssortativeMixing(); //write out assortative pearson correlation
     void writeAtomicGeometryOptimisation(); //write energy of atomic system
     void writeAtomicGeometrySummary(); //write bond and angle averages and stdev
@@ -169,7 +172,7 @@ public:
     void setPotential(double sep, double k, bool local, int localMaxIt, double localCC,
                       bool global, int globalMaxIt, double globalCC, double lineInc); //set parameters for potential model
     void setMonteCarlo(int seed, double t, int moves, double conv, double asf); //set monte carlo limits
-    void setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt, bool rArea, bool aMix); //set analysis tools
+    void setAnalysis(bool convert, bool perVis, bool rdf, double rdfBw, double rdfExt, bool tRdf, double tRdfExt, bool rArea, bool clst, bool aMix); //set analysis tools
     void setAtomicPotential(bool opt, double kA, double kAlpha, double kBeta, int maxIt, double cc, double lineInc); //set parameters for atomic geometry optimisation
     bool getConsistency(); //get whether network constructed is consistent
     bool getTargetStatus(); //get whether target is met

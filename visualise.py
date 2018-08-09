@@ -158,7 +158,7 @@ def plotGraph(crds,rings,ringSizes,graphImage,colourFlag,labelFlag,fig,ax):
        ringCrds=np.array([crds[a] for a in ring])
        ringCrds=np.append(ringCrds, [ringCrds[0]], axis=0)
        path=Path(ringCrds, polygonCmds[ringSizes[i]-4])
-       patch = patches.PathPatch(path, facecolor=colours[i], lw=0.5, alpha=colourFilter[i])
+       patch = patches.PathPatch(path, facecolor=colours[i], lw=0.2, alpha=colourFilter[i])
        ax.add_patch(patch)
        if(labelFlag and graphImage[i]==1):
            ringCom=[np.average(ringCrds[:-1,0])-0.4,np.average(ringCrds[:-1,1])-0.4]
@@ -272,7 +272,7 @@ def generatePolygonDrawingCommands(min, max):
     return allPolyCodes
 
 def savePlot(prefix):
-    filename=prefix+".png"
+    filename=prefix+".pdf"
     plt.savefig(filename, dpi=400, bbox_inches="tight")
     return
 
