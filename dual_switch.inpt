@@ -7,15 +7,15 @@ Network Properties
 0           use existing network (P)
 0           override default periodic lattice dimensions (P+L)
 200.0 200.0  custom periodic lattice dimensions (P+L)
-20 20     starting bulk hexagonal lattice dimensions
-5  7     4 10     ring size limits
+10 10     starting bulk hexagonal lattice dimensions
+4 10     ring size limits
 0.2      target alpha
-0.2 0.6  0.2         0.04 0.268 0.42 0.21 0.05 0.01 0.002      0.1 0.35 0.15 0.25 0.15    0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics 0.1 0.35 0.15 0.25 0.15
+0.04 0.268 0.42 0.21 0.05 0.01 0.002      0.1 0.35 0.15 0.25 0.15    0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics 0.1 0.35 0.15 0.25 0.15
 --------------------------------------
 Simulation Parameters
 0 0         random seed range (inclusive)
-0.01      temperature
-1000000        maximum proposed monte carlo moves
+0.0001      temperature
+1000        maximum proposed monte carlo moves
 0.00001        energy convergence criteria
 10.0          alpha energy scaling factor
 --------------------------------------

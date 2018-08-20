@@ -1883,8 +1883,10 @@ void Network::analyseClusters() {
         sort(rawClusterSizes.begin(),rawClusterSizes.end());
         vector<int> values;
         values.clear();
-        values.push_back(rawClusterSizes[0]);
-        for (int j=1;j<rawClusterSizes.size();++j) if(rawClusterSizes[j]!=values.rbegin()[0]) values.push_back(rawClusterSizes[j]);
+        if(rawClusterSizes.size()>0) {
+            values.push_back(rawClusterSizes[0]);
+            for (int j = 1; j < rawClusterSizes.size(); ++j) if (rawClusterSizes[j] != values.rbegin()[0]) values.push_back(rawClusterSizes[j]);
+        }
         //get count of each cluster size
         map<int,int> refMap;
         refMap.clear();
