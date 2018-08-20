@@ -1318,7 +1318,6 @@ int Network::localMinimisationAperiodic(vector<int> &switchTriangles) {
     localCoordinates=optimiser.getMinimisedCoordinates();
 
 
-
     //update global coordinates
     for(int i=0; i<nMinNodes; ++i) nodes[minimisationRegion[i]].coordinate=localCoordinates[i];
 
@@ -1836,7 +1835,7 @@ void Network::analyseClusters() {
     //find clusters of each ring size and calculate sizes
 
     //find clusters of the same ring size and analyse
-    clusterSizes.resize(nRingSizes);
+    vector< vector<int> > clusterSizes(nRingSizes);
     int n0,n1;
     vector<bool> checkNode(nNodes,true); //marks if node already part of a cluster
     for(int i=0, j=minRingSize; i<nRingSizes; ++i, ++j){//loop over ring sizes
@@ -1871,8 +1870,29 @@ void Network::analyseClusters() {
                 clusters.push_back(cluster);
             }
         }
-        //analyse clusters
+        //get cluster sizes
         for(int k=0; k<clusters.size(); ++k) clusterSizes[i].push_back(clusters[k].size());
+    }
+
+    //calculate cluster size distributions
+    clusterValues.resize(nRingSizes);
+    clusterDistributions.resize(nRingSizes);
+    for(int i=0;i<nRingSizes;++i){
+        //get unique cluster size values
+        vector<int> rawClusterSizes=clusterSizes[i];
+        sort(rawClusterSizes.begin(),rawClusterSizes.end());
+        vector<int> values;
+        values.clear();
+        values.push_back(rawClusterSizes[0]);
+        for (int j=1;j<rawClusterSizes.size();++j) if(rawClusterSizes[j]!=values.rbegin()[0]) values.push_back(rawClusterSizes[j]);
+        //get count of each cluster size
+        map<int,int> refMap;
+        refMap.clear();
+        for(int j=0; j<values.size(); ++j) refMap[values[j]]=j;
+        vector<int> dist(values.size(),0);
+        for(int j=0; j<rawClusterSizes.size(); ++j) ++dist[refMap[rawClusterSizes[j]]];
+        clusterValues[i]=values;
+        clusterDistributions[i]=dist;
     }
 }
 
@@ -2623,7 +2643,7 @@ void Network::writeTopoPartialRdfs() {
 }
 
 void Network::writeClusters() {
-    //write out size of clusters to single file
+    //write out cluster size distribution to single file
 
     string clusterOutputFileName=outPrefix+"analysis_clusters.out";
     ofstream clusterOutputFile(clusterOutputFileName, ios::in|ios::trunc);
@@ -2631,15 +2651,17 @@ void Network::writeClusters() {
     //check clusters include all nodes
     int sum=0;
     for(int i=0; i<nRingSizes; ++i){
-        for(int j=0; j<clusterSizes[i].size(); ++j) sum+=clusterSizes[i][j];
+        for(int j=0; j<clusterValues[i].size(); ++j) sum+=clusterValues[i][j]*clusterDistributions[i][j];
     }
     if(sum!=nNodes) writeFileLine(clusterOutputFile,"ERROR");
 
-    //write clusters
+    //write cluster distribution
     for(int i=0, j=minRingSize; i<nRingSizes; ++i,++j){
-        writeFileLine(clusterOutputFile,"Cluster sizes for rings of size: "+to_string(j));
-        writeFileLine(clusterOutputFile,"Number of clusters: "+to_string(clusterSizes[i].size()));
-        writeFileColVector(clusterOutputFile,clusterSizes[i]);
+        writeFileLine(clusterOutputFile,"Cluster size distributions for rings of size: "+to_string(j));
+        writeFileLine(clusterOutputFile,"Number of entries: "+to_string(clusterValues[i].size()));
+        for(int j=0; j<clusterValues[i].size(); ++j){
+            writeFileLine(clusterOutputFile,clusterValues[i][j],clusterDistributions[i][j]);
+        }
     }
     clusterOutputFile.close();
     return;

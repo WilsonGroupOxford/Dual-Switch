@@ -1,10 +1,10 @@
 IO
 ./cluster_test/ctest_0       ./     alpha_25_seed_1    input prefix
-./cluster_test/ctestt    output prefix
+./cluster_test/ctest    output prefix
 --------------------------------------
 Network Properties
 1          periodic
-1           use existing network (P)
+0           use existing network (P)
 0           override default periodic lattice dimensions (P+L)
 200.0 200.0  custom periodic lattice dimensions (P+L)
 20 20     starting bulk hexagonal lattice dimensions
@@ -14,8 +14,8 @@ Network Properties
 --------------------------------------
 Simulation Parameters
 0 0         random seed range (inclusive)
-0.0001      temperature
-000000        maximum proposed monte carlo moves
+0.01      temperature
+1000000        maximum proposed monte carlo moves
 0.00001        energy convergence criteria
 10.0          alpha energy scaling factor
 --------------------------------------
