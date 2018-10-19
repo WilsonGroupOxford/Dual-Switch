@@ -18,7 +18,7 @@ def main():
     if(dual):
         dualCrds, dualCnxs, dualSizes, dualEdges, lattice=readDual(inPrefix,periodic)
         plotDual(dualCrds,dualCnxs,dualSizes,dualEdges,dualColours,dualLabels,fig,ax)
-        # setDualAxesLimits(dualCrds,ax,lattice)
+        setDualAxesLimits(dualCrds,ax,lattice)
     if(graph):
         graphCrds, graphRings, graphSizes, graphImage, lattice=readGraph(inPrefix,periodic)
         # graphCrds[:,[0,1]]=graphCrds[:,[1,0]]
@@ -141,8 +141,8 @@ def plotDual(crds,cnxs,ringSizes,edges,colourFlag,labelFlag,fig,ax):
             if(cnx0<cnx1): plt.plot([crds[cnx0][0],crds[cnx1][0]],[crds[cnx0][1],crds[cnx1][1]],color="k",lw=0.5,zorder=2)
     if(colourFlag):
         colours=generateColours(ringSizes,edges,True)
-        plt.scatter(crds[:,0],crds[:,1],c=colours,s=2,zorder=3)
-    else: plt.scatter(crds[:,0],crds[:,1],c='k',s=2,zorder=3)
+        plt.scatter(crds[:,0],crds[:,1],c=colours,s=5,zorder=3)
+    else: plt.scatter(crds[:,0],crds[:,1],c='k',s=5,zorder=3)
     if(labelFlag):
         for i,crd in enumerate(crds):
             plt.text(crd[0], crd[1],str(i))
@@ -153,13 +153,16 @@ def plotGraph(crds,rings,ringSizes,graphImage,colourFlag,labelFlag,fig,ax):
     polygonCmds=generatePolygonDrawingCommands(4,12);
     colourFilter=generateColourFilter(graphImage)
     nCrds=crds[:,0].size
+    ignore=[]
     # plt.scatter(crds[:,0],crds[:,1],c='b',s=2,zorder=3)
+    ignore=[111,113,116,72,80,88,56,96,67,41,75,83,91,59,99,69,43,77,85,93,61,
+    74,47,105,73,46,104,95,63,40,94,62,39,87,55,35,115,30,86,54,29,34,114]
     for i, ring in enumerate(rings):
        ringCrds=np.array([crds[a] for a in ring])
        ringCrds=np.append(ringCrds, [ringCrds[0]], axis=0)
        path=Path(ringCrds, polygonCmds[ringSizes[i]-4])
-       patch = patches.PathPatch(path, facecolor=colours[i], lw=0.2, alpha=colourFilter[i])
-       ax.add_patch(patch)
+       patch = patches.PathPatch(path, facecolor=colours[i], lw=0.8, alpha=colourFilter[i])
+       if i not in ignore: ax.add_patch(patch)
        if(labelFlag and graphImage[i]==1):
            ringCom=[np.average(ringCrds[:-1,0])-0.4,np.average(ringCrds[:-1,1])-0.4]
            if(ringCrds[:,0].size-1)==4: ringCom[0]+=0.1
@@ -186,7 +189,8 @@ def plotGraph(crds,rings,ringSizes,graphImage,colourFlag,labelFlag,fig,ax):
            print i, ringCrds[:,0].size-1
            ringCom=[np.average(ringCrds[:-1,0])-0.4,np.average(ringCrds[:-1,1])-0.4]
            if(ringCrds[:,0].size-1)==4: ringCom[0]+=0.1
-           plt.text(ringCom[0],ringCom[1],str(ringCrds[:,0].size-1),color="dimgrey")
+           if i not in ignore: plt.text(ringCom[0],ringCom[1],str(ringCrds[:,0].size-1),color="dimgrey")
+           #plt.text(ringCom[0],ringCom[1],i,color="dimgrey")
 
     return
 
@@ -210,8 +214,9 @@ def setGraphAxesLimits(crds,rings,image,ax,lat):
     limUb=np.amax(crds[crdMask,0])+10
     sf=lat[1]/lat[0]
     sf=1
-    #limLb=-12
-    #limUb=24
+    limLb=-12
+    limUb=24
+    print limLb, limUb
     ax.set_xlim(limLb,limUb)
     ax.set_ylim(limLb*sf,limUb*sf)
     return
@@ -237,6 +242,7 @@ def generateColours(ringSizes,kRings=None,kFlag=False):
     orange=colormapOranges(100)
     purple=colormapPurples(100)
     pink=colormapPinks(80)
+    black=colormapGreys(240)
 
     colourList=[green,blue,grey,red,orange,purple,pink]
 
@@ -245,11 +251,11 @@ def generateColours(ringSizes,kRings=None,kFlag=False):
 
     if(kFlag):
         for i in range(nRings):
-            if(int(ringSizes[i])<4 or kRings[i]==1): colours.append('black')
+            if(int(ringSizes[i])<4 or kRings[i]==1): colours.append(black)
             else: colours.append(colourList[int(ringSizes[i])-4])
     else:
         for i in range(nRings):
-            if(int(ringSizes[i])<4): colours.append('black')
+            if(int(ringSizes[i])<4): colours.append(black)
             else: colours.append(colourList[int(ringSizes[i])-4])
     return colours
 
@@ -272,7 +278,7 @@ def generatePolygonDrawingCommands(min, max):
     return allPolyCodes
 
 def savePlot(prefix):
-    filename=prefix+".pdf"
+    filename=prefix+".png"
     plt.savefig(filename, dpi=400, bbox_inches="tight")
     return
 

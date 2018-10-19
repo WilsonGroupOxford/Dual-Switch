@@ -85,6 +85,7 @@ private:
     void initialisePotentialModel(); //make parameters for potential model
     void initialisePeriodicLattice(); //make initial periodic hexagonal lattice
     void initialiseAperiodicLattice(); //make initial aperiodic hexagonal lattice
+    void initialiseAperiodicCrystalLattice(); //XXX
     void initialiseMonteCarlo(); //set up variables and initialise random number generators
     void loadPeriodicLattice(); //read in existing periodic lattice
 
@@ -94,6 +95,7 @@ private:
 
     //Monte carlo
     void monteCarlo(); //main monte carlo process
+    void definedMove(vector<int> &switchTriangles); //perform defined dual switch move
     vector<int> pickRandomTrianglePairPeriodic(); //nodes to dual switch
     vector<int> pickRandomTrianglePairAperiodic(); //nodes to dual switch
     vector<int> pickDefinedTrianglePair(int m); //nodes to dual switch - for development

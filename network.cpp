@@ -109,7 +109,14 @@ void Network::construct(ofstream &logfile) {
     }
     else if(periodic) initialisePeriodicLattice();
     else initialiseAperiodicLattice();
+
     initialiseMonteCarlo();
+
+    bool crystal=true;
+    if(crystal){
+        if(!periodic) initialiseAperiodicCrystalLattice();
+    }
+
     monteCarlo();
     checkFidelity();
 
@@ -422,6 +429,91 @@ void Network::initialiseAperiodicLattice() {
     return;
 }
 
+void Network::initialiseAperiodicCrystalLattice(){
+    //set up a lattice which is not hexagonal by performing well defined dual switch moves
+    //TESTER FOR PERIODIC CASE
+
+    //vars
+    int xSwitchFreq=2;
+    int ySwitchFreq=1;
+
+    //scan crystal from bottom to top and perform switches at required frequencies
+    int xNodes=initialLatticeDimensions[0]+2, yNodes=initialLatticeDimensions[1]+2; //number of nodes in layer and number of layers
+    int nodeIndex=0;
+    bool stagger=false;
+    bool switchMove;
+    vector<int> switchTriangles(4);
+    //bottom edge
+    for(int j=0; j<xNodes-1; ++j){
+        if(j % xSwitchFreq==1){
+            switchTriangles[0] = nodeIndex;
+            switchTriangles[1] = nodeIndex + xNodes - 1;
+            switchTriangles[2] = nodeIndex - 1;
+            switchTriangles[3] = nodeIndex + xNodes;
+            definedMove(switchTriangles);
+        }
+        ++nodeIndex;
+    }
+    //middle section
+    for(int i=1; i<yNodes-2; ++i){
+        if(i % ySwitchFreq==0){
+            for(int j=0; j<xNodes; ++j){
+                if(stagger && j%xSwitchFreq==0){
+                    switchTriangles[0] = nodeIndex;
+                    switchTriangles[1] = nodeIndex + xNodes + 1;
+                    switchTriangles[2] = nodeIndex + 1;
+                    switchTriangles[3] = nodeIndex + xNodes;
+                    definedMove(switchTriangles);
+                };
+                if(!stagger && j%xSwitchFreq==1){
+                    switchTriangles[0] = nodeIndex;
+                    switchTriangles[1] = nodeIndex + xNodes - 1;
+                    switchTriangles[2] = nodeIndex - 1;
+                    switchTriangles[3] = nodeIndex + xNodes;
+                    definedMove(switchTriangles);
+                };
+                ++nodeIndex;
+            }
+        }
+        else nodeIndex+=xNodes;
+        stagger=!stagger;
+    }
+    //top edge
+    for(int j=0; j<xNodes-1; ++j){
+        if(j % xSwitchFreq==1){
+            switchTriangles[0] = nodeIndex;
+            switchTriangles[1] = nodeIndex + xNodes - 1;
+            switchTriangles[2] = nodeIndex - 1;
+            switchTriangles[3] = nodeIndex + xNodes;
+            definedMove(switchTriangles);
+        }
+        ++nodeIndex;
+    }
+
+
+//    for(int i=0; i<yNodes-1; ++i){//scan inter-layer
+//        if(i % ySwitchFreq==0){
+//            ++nodeIndex; //skip edge node
+//            for(int j=0; j<xNodes-2; ++j){//scan intra-layer
+//                if(stagger && j % xSwitchFreq==0) switchMove=true;
+//                else if(!stagger && j % xSwitchFreq==1) switchMove=true;
+//                else switchMove=false;
+//                if(switchMove) {
+//                    switchTriangles[0] = nodeIndex;
+//                    switchTriangles[1] = nodeIndex + xNodes + 1;
+//                    switchTriangles[2] = nodeIndex + 1;
+//                    switchTriangles[3] = nodeIndex + xNodes;
+//                    consoleVector(switchTriangles);
+//                }
+//                ++nodeIndex;
+//            }
+//            ++nodeIndex; //skip edge node
+//        }
+//        else nodeIndex+=xNodes;
+//        stagger=!stagger;
+//    }
+}
+
 void Network::initialiseMonteCarlo() {
     //set up number generators and variables for mc
 
@@ -534,6 +626,33 @@ void Network::loadPeriodicLattice() {
 
 //###### Construction monte carlo ######
 
+void Network::definedMove(vector<int> &switchTriangles) {
+    //perform single defined dual-switch move
+
+    //move variables
+    double moveMcEnergy;
+    vector<int> movePVector;
+    vector< vector<int> > movePMatrix;
+    vector<double> moveAwParameters;
+
+    if(periodic){
+        movePVector=pVector;
+        movePMatrix=pMatrix;
+        calculateTrialPPeriodic(switchTriangles, movePVector, movePMatrix);
+        moveAwParameters=calculateAboavWeaireFit(movePVector,movePMatrix);
+        moveMcEnergy=mcEnergyFunctional(moveAwParameters,movePVector);
+        mcTargetReached=acceptDualSwitchPeriodic(switchTriangles,movePVector,movePMatrix,moveMcEnergy,moveAwParameters);
+    }
+    else{
+        movePVector=pVector;
+        movePMatrix=pMatrix;
+        calculateTrialPAperiodic(switchTriangles, movePVector, movePMatrix);
+        moveAwParameters=calculateAboavWeaireFit(movePVector,movePMatrix);
+        moveMcEnergy=mcEnergyFunctional(moveAwParameters,movePVector);
+        mcTargetReached=acceptDualSwitchAperiodic(switchTriangles,movePVector,movePMatrix,moveMcEnergy,moveAwParameters);
+    }
+}
+
 void Network::monteCarlo() {
     //main dual switch monte carlo process
 
@@ -558,7 +677,7 @@ void Network::monteCarlo() {
             calculateTrialPPeriodic(switchTriangles, trialPVector, trialPMatrix);
             trialAwParameters=calculateAboavWeaireFit(trialPVector,trialPMatrix);
             trialMcEnergy=mcEnergyFunctional(trialAwParameters,trialPVector);
-            testCounter=move;
+            testCounter=move+1;
             acceptTrialMove=evaluateMetropolisCondition(trialMcEnergy,mcEnergy);
             if(acceptTrialMove) mcTargetReached=acceptDualSwitchPeriodic(switchTriangles,trialPVector,trialPMatrix,trialMcEnergy,trialAwParameters);
             if(mcTargetReached){
@@ -1007,7 +1126,9 @@ double Network::mcEnergyFunctional(vector<double> &awParams, vector<int> &pVec) 
 
     //difference of ring statistics to target
     double norm=1.0/accumulate(pVec.begin(), pVec.end(), 0.0);
-    for(int i=0; i<nRingSizes; ++i) e=e+fabs(norm*pVec[i]-targetPVector[i])*rTargetPVector[i];
+    for(int i=0; i<nRingSizes; ++i){
+        e=e+fabs(norm*pVec[i]-targetPVector[i])*rTargetPVector[i];
+    }
 
     return e;
 }

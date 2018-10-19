@@ -6,4 +6,5 @@ test*
 *.pdf
 *.png
 *temp
-
+video/*
+haeckelite/*

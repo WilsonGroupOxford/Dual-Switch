@@ -229,7 +229,7 @@ int AperiodicGeometryOptimiser::steepestDescent() {
         calculateForces();
         lineSearch();
         checkConvergence();
-        cout<<iterations<<" "<<currentEnergy<<endl;
+//        cout<<iterations<<" "<<currentEnergy<<endl;
         if(complete) break;
     }
 
