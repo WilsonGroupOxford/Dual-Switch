@@ -23,7 +23,8 @@ private:
     //Network properties
     bool periodic, load, overridePbc; //periodic network, load existing network, override default pbc
     double targetAlpha; //target for aboav-weaire alpha parameter
-    vector<int> initialLatticeDimensions, ringSizeLimits; //starting hex lattice size, max/min ring size values
+    string initialLatticeType; //starting lattice for mc
+    vector<int> initialLatticeDimensions, ringSizeLimits; //starting lattice size, max/min ring size values
     vector<double> targetPVector; //target ring statistics
     vector<double> overridelatticePbc; //overriden periodc boundary conditions
 
@@ -85,7 +86,10 @@ private:
     void initialisePotentialModel(); //make parameters for potential model
     void initialisePeriodicLattice(); //make initial periodic hexagonal lattice
     void initialiseAperiodicLattice(); //make initial aperiodic hexagonal lattice
+    void initialisePeriodicCrystalLattice(string crystal); //make alternative starting crystal lattice
     void initialiseAperiodicCrystalLattice(); //XXX
+    void hexPeriodicCrystal(int layer, int offset, int blockLength, int blockSkip, bool reverse); //defined moves in hexagonal symmetry
+    void cubicPeriodicCrystal(int layer, int offset, int blockLength, int blockSkip); //defined moves in cubic symmetry
     void initialiseMonteCarlo(); //set up variables and initialise random number generators
     void loadPeriodicLattice(); //read in existing periodic lattice
 
@@ -170,7 +174,7 @@ private:
 
 public:
     void setIO(string in, string out); //set input/output properties
-    void setProperties(bool per, bool readIn, vector<int> latDim, bool ovrPbc, vector<double> ovrLatPbc, vector<int> ringLim, double alpha, vector<double> p); //set initial and target network properties
+    void setProperties(bool per, bool readIn, string latType, vector<int> latDim, bool ovrPbc, vector<double> ovrLatPbc, vector<int> ringLim, double alpha, vector<double> p); //set initial and target network properties
     void setPotential(double sep, double k, bool local, int localMaxIt, double localCC,
                       bool global, int globalMaxIt, double globalCC, double lineInc); //set parameters for potential model
     void setMonteCarlo(int seed, double t, int moves, double conv, double asf); //set monte carlo limits

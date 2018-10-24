@@ -3,28 +3,29 @@ IO
 ./haeckelite/test  output prefix
 --------------------------------------
 Network Properties
-0          periodic
+1          periodic
 0           use existing network (P)
 0           override default periodic lattice dimensions (P+L)
 200.0 200.0  custom periodic lattice dimensions (P+L)
-10 10     starting bulk hexagonal lattice dimensions
-4 8     ring size limits
+haeckelite   starting lattice type (P for non-hexagonal)
+20 20     starting bulk hexagonal lattice dimensions
+5 7     ring size limits
 0.25      target alpha
-0.2 0.2 0.2 0.2 0.2   0.25 0.5 0.25      0.1 0.35 0.15 0.25 0.15      0.02 0.96 0.02      0.04 0.268 0.42 0.21 0.05 0.01 0.002      0.1 0.35 0.15 0.25 0.15    0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics 0.1 0.35 0.15 0.25 0.15
+0.45 0.1 0.45      0.04 0.268 0.42 0.21 0.05 0.01 0.002      0.1 0.35 0.15 0.25 0.15    0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics 0.1 0.35 0.15 0.25 0.15
 --------------------------------------
 Simulation Parameters
 0 0         random seed range (inclusive)
-0.0001      temperature
-0    maximum proposed monte carlo moves
-0.00001        energy convergence criteria
-100.0          alpha energy scaling factor
+0.0100      temperature
+000    maximum proposed monte carlo moves
+0.001        energy convergence criteria
+10.0          alpha energy scaling factor
 --------------------------------------
 Dual Potential Model and Geometry Optimisation
-1.42        si-si distance
+3.031535    1.42        si-si distance
 25          harmonic k
-0           locally minimise every step
+1          locally minimise every step
 100         maximum iterations
-0.1         convergence criteria
+0.01         convergence criteria
 0.001        line search step size
 0           globally minimise after simulation end
 1000       maximum iterations

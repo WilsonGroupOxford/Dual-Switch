@@ -9,10 +9,11 @@ void Network::setIO(string in, string out) {
     return;
 }
 
-void Network::setProperties(bool per, bool readIn, vector<int> latDim, bool ovrPbc, vector<double> ovrLatPbc, vector<int> ringLim, double alpha, vector<double> p) {
+void Network::setProperties(bool per, bool readIn, string latType, vector<int> latDim, bool ovrPbc, vector<double> ovrLatPbc, vector<int> ringLim, double alpha, vector<double> p) {
     //set initial lattice properties and target lattice properties
     periodic=per;
     load=readIn;
+    initialLatticeType=latType;
     initialLatticeDimensions=latDim;
     overridePbc=ovrPbc;
     overridelatticePbc=ovrLatPbc;
@@ -112,9 +113,9 @@ void Network::construct(ofstream &logfile) {
 
     initialiseMonteCarlo();
 
-    bool crystal=true;
-    if(crystal){
-        if(!periodic) initialiseAperiodicCrystalLattice();
+    if(initialLatticeType!="hexagonal"){
+//        if(!periodic) initialiseAperiodicCrystalLattice();
+        if(periodic) initialisePeriodicCrystalLattice(initialLatticeType);
     }
 
     monteCarlo();
@@ -428,6 +429,185 @@ void Network::initialiseAperiodicLattice() {
 
     return;
 }
+
+void Network::initialisePeriodicCrystalLattice(string crystal){
+    //set up a starting lattice which is not hexagonal by performing well-defined switch moves
+
+    string latticeCode;
+    if(crystal=="haeckelite") latticeCode="c0";
+
+    if(latticeCode.substr(0,1)=="h"){
+        int skip=stoi(latticeCode.substr(1,2));
+        for(int i=0; i<initialLatticeDimensions[1]; i+=2) hexPeriodicCrystal(i,0,1,skip,false);
+    }
+    else if(latticeCode.substr(0,1)=="c"){
+        int skip=stoi(latticeCode.substr(1,2));
+        for(int i=0, j=0; i<initialLatticeDimensions[1]; i+=2, ++j) cubicPeriodicCrystal(i,j%2,1,skip);
+    }
+    else if(latticeCode=="xx") {
+        for (int i = 0; i < initialLatticeDimensions[1]; i+=3) cubicPeriodicCrystal(i,0,1,0);
+        for(int i=1; i<initialLatticeDimensions[1]; i+=6) hexPeriodicCrystal(i,0,1,0,false);
+        for(int i=4; i<initialLatticeDimensions[1]; i+=6) hexPeriodicCrystal(i,1,1,0,true);
+    }
+//    else if(latticeCode=="xxx") {
+//        for (int i = 0; i < initialLatticeDimensions[1]; i+=3) cubicPeriodicCrystal(i,0,2,2);
+//        hexPeriodicCrystal(1,0,2,2,false);
+//        hexPeriodicCrystal(4,1,2,2,true);
+//        hexPeriodicCrystal(3,1,2,2,true);
+////        hexPeriodicCrystal(9,0,1,0,true);
+//        hexPeriodicCrystal(6,0,1,0,false);
+//        hexPeriodicCrystal(9,0,1,0,true);
+//        cubicPeriodicCrystal(2,1,1,10);
+//        hexPeriodicCrystal(2,0,1,10,false);
+//        for(int i=1; i<initialLatticeDimensions[1]; i+=6) hexPeriodicCrystal(i,0,1,0,false);
+//        for(int i=4; i<initialLatticeDimensions[1]; i+=6) hexPeriodicCrystal(i,1,1,0,true);
+//    }
+
+}
+
+void Network::hexPeriodicCrystal(int layer, int offset, int blockLength, int blockSkip, bool reverse) {
+    //apply dual switch moves to crystal in hexagonal symmetry
+
+    //block variables
+    int repeatUnitLength=blockLength*2+blockSkip; //length of repeating unit (defect = 2 rings in length)
+    int xNodes=initialLatticeDimensions[0], yNodes=initialLatticeDimensions[1]; //number of nodes in layer and number of layer
+
+    //make list of nodes which need switching
+    vector<bool> nodeSwitch(xNodes, false);
+    int pos;
+    for (int i=0, j=layer*xNodes; i<xNodes; ++i, ++j){
+        pos=i%repeatUnitLength;
+        if(pos<blockLength*2 && pos%2==offset){
+            nodeSwitch[i]=true;
+        }
+    }
+
+    //perform switches
+    vector<int> switchTriangles(4);
+    if(!reverse){
+        if (layer % 2 == 0) {
+            for (int i = 0, j = xNodes * layer; i < xNodes; ++i, ++j) {
+                if (nodeSwitch[i]) {
+                    switchTriangles[0] = j;
+                    switchTriangles[1] = j + xNodes;
+                    switchTriangles[2] = j + xNodes - 1;
+                    switchTriangles[3] = j + 1;
+                    if (i % xNodes == 0) switchTriangles[2] += xNodes;
+                    else if ((i + 1) % xNodes == 0) switchTriangles[3] -= xNodes;
+                    consoleVector(switchTriangles);
+                    definedMove(switchTriangles);
+                }
+            }
+        } else {
+            for (int i = 0, j = xNodes * layer; i < xNodes; ++i, ++j) {
+                if (nodeSwitch[i]) {
+                    switchTriangles[0] = j;
+                    switchTriangles[1] = j + xNodes + 1;
+                    switchTriangles[2] = j + xNodes;
+                    switchTriangles[3] = j + 1;
+                    if ((i + 1) % xNodes == 0) {
+                        switchTriangles[1] -= xNodes;
+                        switchTriangles[3] -= xNodes;
+                    }
+                    if (layer + 1 == yNodes) {
+                        switchTriangles[1] -= nNodes;
+                        switchTriangles[2] -= nNodes;
+                    }
+                    definedMove(switchTriangles);
+                }
+            }
+        }
+    }
+    else{
+        if (layer % 2 == 0) {
+            for (int i = 0, j = xNodes * layer; i < xNodes; ++i, ++j) {
+                if (nodeSwitch[i]) {
+                    switchTriangles[0] = j;
+                    switchTriangles[1] = j + xNodes -1;
+                    switchTriangles[2] = j + xNodes;
+                    switchTriangles[3] = j - 1;
+                    if (i % xNodes == 0){
+                        switchTriangles[1] += xNodes;
+                        switchTriangles[3] += xNodes;
+                    }
+                    definedMove(switchTriangles);
+                }
+            }
+        } else {
+            for (int i = 0, j = xNodes * layer; i < xNodes; ++i, ++j) {
+                if (nodeSwitch[i]) {
+                    switchTriangles[0] = j;
+                    switchTriangles[1] = j + xNodes;
+                    switchTriangles[2] = j + xNodes + 1;
+                    switchTriangles[3] = j - 1;
+                    if (i % xNodes == 0) switchTriangles[3] += xNodes;
+                    if ((i + 1) % xNodes == 0) switchTriangles[2] -= xNodes;
+                    if (layer + 1 == yNodes) {
+                        switchTriangles[1] -= nNodes;
+                        switchTriangles[2] -= nNodes;
+                    }
+                    definedMove(switchTriangles);
+                }
+            }
+        }
+    }
+
+
+}
+
+void Network::cubicPeriodicCrystal(int layer, int offset, int blockLength, int blockSkip) {
+    //apply dual switch moves to crystal in cubic symmetry
+
+    //block variables
+    int repeatUnitLength=blockLength*2+blockSkip; //length of repeating unit (defect = 2 rings in length)
+    int xNodes=initialLatticeDimensions[0], yNodes=initialLatticeDimensions[1]; //number of nodes in layer and number of layer
+
+    //make list of nodes which need switching
+    vector<bool> nodeSwitch(xNodes, false);
+    int pos;
+    for (int i=0, j=layer*xNodes; i<xNodes; ++i, ++j){
+        pos=i%repeatUnitLength;
+        if(pos<blockLength*2 && pos%2==offset){
+            nodeSwitch[i]=true;
+        }
+    }
+
+    //perform switches
+    vector<int> switchTriangles(4);
+    if(layer%2==0){
+        for(int i=0,j=xNodes*layer; i<xNodes; ++i, ++j) {
+            if(nodeSwitch[i]) {
+                switchTriangles[0] = j;
+                switchTriangles[1] = j + 1;
+                switchTriangles[2] = j + xNodes;
+                switchTriangles[3] = j - xNodes;
+                if ((i + 1) % xNodes == 0) switchTriangles[1] -= xNodes;
+                if(layer==0) switchTriangles[3] += nNodes;
+                definedMove(switchTriangles);
+            }
+        }
+    }
+    else{
+        for(int i=0,j=xNodes*layer; i<xNodes; ++i, ++j) {
+            if(nodeSwitch[i]) {
+                switchTriangles[0] = j;
+                switchTriangles[1] = j + 1;
+                switchTriangles[2] = j + xNodes + 1;
+                switchTriangles[3] = j - xNodes + 1;
+                if ((i + 1) % xNodes == 0){
+                    switchTriangles[1] -= xNodes;
+                    switchTriangles[2] -= xNodes;
+                    switchTriangles[3] -= xNodes;
+                }
+                if(layer+1==yNodes) switchTriangles[2] -= nNodes;
+                definedMove(switchTriangles);
+            }
+        }
+    }
+
+
+}
+
 
 void Network::initialiseAperiodicCrystalLattice(){
     //set up a lattice which is not hexagonal by performing well defined dual switch moves

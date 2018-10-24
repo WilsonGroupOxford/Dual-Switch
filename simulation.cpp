@@ -60,6 +60,7 @@ void Simulation::readInputFile() {
     readFileValue(mainInputFile,load);
     readFileValue(mainInputFile,setPbc);
     readFileRowVector(mainInputFile,customPbc,2);
+    readFileValue(mainInputFile,latticeType);
     readFileRowVector(mainInputFile,latticeDimensions,2);
     readFileRowVector(mainInputFile,ringSizeLimits,2);
     readFileValue(mainInputFile,alpha);
@@ -110,7 +111,7 @@ void Simulation::readInputFile() {
     string line;
     if(periodic) line="periodic ";
     else line="aperiodic ";
-    line=line+"lattice of dimensions "+to_string(latticeDimensions[0])+"x"+to_string(latticeDimensions[1]);
+    line=line+latticeType+" lattice of dimensions "+to_string(latticeDimensions[0])+"x"+to_string(latticeDimensions[1]);
     writeFileLine(logfile,line);
     line="ring size limits: "+to_string(ringSizeLimits[0])+"-"+to_string(ringSizeLimits[1]);
     writeFileLine(logfile,line);
@@ -134,7 +135,7 @@ void Simulation::initialiseNetwork(Network &network, int seed) {
     //set up network with input properties and given random seed
 
     network.setIO(inPrefix,outPrefix+"_"+to_string(seed));
-    network.setProperties(periodic,load,latticeDimensions,setPbc,customPbc,ringSizeLimits,alpha,pVector);
+    network.setProperties(periodic,load,latticeType,latticeDimensions,setPbc,customPbc,ringSizeLimits,alpha,pVector);
     network.setPotential(atomDistance, harmonicK, localGeomOpt, localGeomOptMaxIt, localGeomOptConv,
                          globalGeomOpt, globalGeomOptMaxIt, globalGeomOptConv, lineSearchStep);
     network.setMonteCarlo(seed,temperature,maxMoves,propConvergence,alphaEnergyScaling);

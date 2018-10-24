@@ -16,6 +16,7 @@ private:
 
     //Network Properties
     bool periodic, load, setPbc; //(a)periodic network, using existing network, with custom periodic boundary conditions
+    string latticeType; //initial lattice type
     double alpha; //target aboav-weaire alpha parameter
     vector<int> latticeDimensions, ringSizeLimits; //initial lattice dimensions (nunmber of rings in x/y), min/max ring sizes
     vector<double> pVector; //target ring statistics
