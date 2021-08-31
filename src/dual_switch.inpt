@@ -1,22 +1,22 @@
 IO
-./NA       ./     alpha_25_seed_1    input prefix
-./haeckelite/test  output prefix
+./NA       input prefix
+./post_test/a  output prefix
 --------------------------------------
 Network Properties
 1          periodic
 0           use existing network (P)
 0           override default periodic lattice dimensions (P+L)
 200.0 200.0  custom periodic lattice dimensions (P+L)
-haeckelite   starting lattice type (P for non-hexagonal)
-20 20     starting bulk hexagonal lattice dimensions
-5 7     ring size limits
-0.25      target alpha
-0.45 0.1 0.45      0.04 0.268 0.42 0.21 0.05 0.01 0.002      0.1 0.35 0.15 0.25 0.15    0.04 0.268 0.42 0.21 0.05 0.01 0.002 target ring statistics 0.1 0.35 0.15 0.25 0.15
+hexagonal   starting lattice type (P for non-hexagonal)
+10 10     starting bulk hexagonal lattice dimensions
+4 8     ring size limits
+0.20      target alpha
+0.05 0.15 0.6 0.15 0.05      ring statistics
 --------------------------------------
 Simulation Parameters
-0 0         random seed range (inclusive)
-0.0100      temperature
-000    maximum proposed monte carlo moves
+0 4         random seed range (inclusive)
+0.0050      temperature
+100000    maximum proposed monte carlo moves
 0.001        energy convergence criteria
 10.0          alpha energy scaling factor
 --------------------------------------
@@ -27,7 +27,7 @@ Dual Potential Model and Geometry Optimisation
 100         maximum iterations
 0.01         convergence criteria
 0.001        line search step size
-0           globally minimise after simulation end
+100           globally minimise after simulation end
 1000       maximum iterations
 0.001         convergence criteria
 --------------------------------------
@@ -39,9 +39,9 @@ Analysis Tools
 50.0        partial rdf extent
 0           partial topological rdfs (P)
 12.0        number of topological shells to include
-0           ring areas
-0           cluster analysis (P)
-0           assortative mixing (P)
+1           ring areas
+1           cluster analysis (P)
+1           assortative mixing (P)
 --------------------------------------
 Atomic Potential Model and Geometry Optimisation
 0           globally minimise atomic network
@@ -49,8 +49,8 @@ Atomic Potential Model and Geometry Optimisation
 25.880      Keating alpha parameter
 5.176       Keating beta parameter
 1000         maximum iterations
-0.001        convergence criteria
-0.001        line search step size
+0.00001        convergence criteria
+0.00001        line search step size
 --------------------------------------
 
 Key

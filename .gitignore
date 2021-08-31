@@ -5,6 +5,9 @@ cmake-build*/
 test*
 *.pdf
 *.png
+*.zip
 *temp
 video/*
 haeckelite/*
+*fig*/*
+.DS_Store

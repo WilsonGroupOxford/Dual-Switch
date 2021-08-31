@@ -155,8 +155,8 @@ def plotGraph(crds,rings,ringSizes,graphImage,colourFlag,labelFlag,fig,ax):
     nCrds=crds[:,0].size
     ignore=[]
     # plt.scatter(crds[:,0],crds[:,1],c='b',s=2,zorder=3)
-    ignore=[111,113,116,72,80,88,56,96,67,41,75,83,91,59,99,69,43,77,85,93,61,
-    74,47,105,73,46,104,95,63,40,94,62,39,87,55,35,115,30,86,54,29,34,114]
+#    ignore=[111,113,116,72,80,88,56,96,67,41,75,83,91,59,99,69,43,77,85,93,61,
+ #   74,47,105,73,46,104,95,63,40,94,62,39,87,55,35,115,30,86,54,29,34,114]
     for i, ring in enumerate(rings):
        ringCrds=np.array([crds[a] for a in ring])
        ringCrds=np.append(ringCrds, [ringCrds[0]], axis=0)
@@ -186,7 +186,7 @@ def plotGraph(crds,rings,ringSizes,graphImage,colourFlag,labelFlag,fig,ax):
            # ringCom[1]+=0.5
            plt.text(ringCom[0],ringCom[1],str(ringCrds[:,0].size-1))
        elif(labelFlag):
-           print i, ringCrds[:,0].size-1
+           print(i, ringCrds[:,0].size-1)
            ringCom=[np.average(ringCrds[:-1,0])-0.4,np.average(ringCrds[:-1,1])-0.4]
            if(ringCrds[:,0].size-1)==4: ringCom[0]+=0.1
            if i not in ignore: plt.text(ringCom[0],ringCom[1],str(ringCrds[:,0].size-1),color="dimgrey")
@@ -214,9 +214,9 @@ def setGraphAxesLimits(crds,rings,image,ax,lat):
     limUb=np.amax(crds[crdMask,0])+10
     sf=lat[1]/lat[0]
     sf=1
-    limLb=-12
-    limUb=24
-    print limLb, limUb
+ #   limLb=-12
+  #  limUb=24
+    print(limLb, limUb)
     ax.set_xlim(limLb,limUb)
     ax.set_ylim(limLb*sf,limUb*sf)
     return

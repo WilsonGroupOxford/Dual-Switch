@@ -1357,7 +1357,7 @@ bool Network::acceptDualSwitchPeriodic(vector<int> &switchTriangles, vector<int>
     aboavWeaireParams=trialAwParams;
     mcAcceptedMoves=++mcAcceptedMoves;
 
-    cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<mcEnergy<<endl;
+    cout<<testCounter<<" "<<aboavWeaireParams[0]<<" "<<aboavWeaireParams[1]<<" "<<aboavWeaireParams[2]<<" "<<pVector[1]<<" "<<mcEnergy<<endl;
 
     if(mcEnergy<=mcConvergence) return true;
     else return false;
